@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import axios from 'axios';
 
 export default function Register() {
   const [fullName, setFullName] = useState('');
@@ -40,9 +41,25 @@ export default function Register() {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: fullName });
-      navigate('/');
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      await updateProfile(userCredential.user, {
+        displayName: fullName,
+      });
+
+      // Save user details to backend (MySQL)
+      await axios.post("http://localhost:5000/api/auth/register", {
+        firebase_uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        full_name: fullName,
+        username: email.split("@")[0]
+      });
+
+      navigate("/");
     } catch (err: any) {
       setError(err.message || 'Failed to register');
     }
@@ -53,27 +70,27 @@ export default function Register() {
       <h2>Register</h2>
       {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
       <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <input 
-          type="text" 
-          placeholder="Full Name" 
+        <input
+          type="text"
+          placeholder="Full Name"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
         />
-        <input 
-          type="email" 
-          placeholder="Email" 
+        <input
+          type="email"
+          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <input 
-          type="password" 
-          placeholder="Password" 
+        <input
+          type="password"
+          placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <input 
-          type="password" 
-          placeholder="Confirm Password" 
+        <input
+          type="password"
+          placeholder="Confirm Password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
         />

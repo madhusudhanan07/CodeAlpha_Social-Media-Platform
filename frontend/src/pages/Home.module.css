@@ -1,0 +1,20 @@
+.homeLayout {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+}
+
+.feedColumn {
+  flex: 1;
+  max-width: var(--feed-w);
+}
+
+@media (max-width: 1024px) {
+  .homeLayout {
+    flex-direction: column;
+  }
+  
+  .feedColumn {
+    max-width: 100%;
+  }
+}

@@ -9,6 +9,7 @@ import Explore from '../pages/Explore';
 import Settings from '../pages/Settings';
 import NotFound from '../pages/NotFound';
 import ProtectedRoute from './ProtectedRoute';
+import EditProfile from '../pages/EditProfile';
 
 export default function AppRouter() {
   return (
@@ -21,7 +22,9 @@ export default function AppRouter() {
           <Route path="explore" element={<Explore />} />
           
           <Route element={<ProtectedRoute />}>
+            <Route path="profile" element={<Profile />} />
             <Route path="profile/:id" element={<Profile />} />
+            <Route path="profile/edit" element={<EditProfile />} />
             <Route path="create" element={<CreatePost />} />
             <Route path="settings" element={<Settings />} />
           </Route>

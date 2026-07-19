@@ -1,15 +1,18 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
-// TODO: Replace with your actual Firebase project configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyB1Ux2132wL9Ttkv4_VSV_udBZvfALeXdA",
+  authDomain: "codealphasocial-media-platform.firebaseapp.com",
+  projectId: "codealphasocial-media-platform",
+  storageBucket: "codealphasocial-media-platform.firebasestorage.app",
+  messagingSenderId: "14179781922",
+  appId: "1:14179781922:web:c4825b51ab54807e0ea97b",
+  measurementId: "G-JEL1KQFX9H"
 };
 
 const app = initializeApp(firebaseConfig);
+
 export const auth = getAuth(app);
+
+export default app;
