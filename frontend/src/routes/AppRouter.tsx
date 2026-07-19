@@ -12,6 +12,7 @@ import ProtectedRoute from './ProtectedRoute';
 import EditProfile from '../pages/EditProfile';
 import Chat from '../pages/Chat';
 import Friends from '../pages/Friends';
+import Notifications from '../pages/Notifications';
 
 export default function AppRouter() {
   return (
@@ -32,6 +33,7 @@ export default function AppRouter() {
             <Route path="chat" element={<Chat />} />
             <Route path="messages" element={<Chat />} />
             <Route path="friends" element={<Friends />} />
+            <Route path="notifications" element={<Notifications />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

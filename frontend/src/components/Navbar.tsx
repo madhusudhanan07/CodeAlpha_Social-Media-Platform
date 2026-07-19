@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { auth } from '../config/firebase';
-import { Bell, Search, MessageSquare, Moon, Sun, Users } from 'lucide-react';
+import { Bell, Search, MessageSquare, Moon, Sun, Users, Heart, MessageCircle, UserPlus, AtSign, Info } from 'lucide-react';
+import { io } from 'socket.io-client';
 import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar() { 
@@ -69,8 +70,8 @@ export default function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
     const fetchNotifications = async () => {
-      if (!user) return;
       try {
         const token = await auth.currentUser?.getIdToken();
         const res = await axios.get(`http://localhost:5000/api/notifications`, {
@@ -84,15 +85,26 @@ export default function Navbar() {
     };
     
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000); // Poll every 10s
-    return () => clearInterval(interval);
+    const newSocket = io('http://localhost:5000', {
+      query: { userId: user.uid }
+    });
+
+    newSocket.on('receive_notification', (newNotif: any) => {
+      setNotifications(prev => [newNotif, ...prev].slice(0, 50));
+      setUnreadCount(prev => prev + 1);
+    });
+
+    return () => {
+      newSocket.off('receive_notification');
+      newSocket.disconnect();
+    };
   }, [user]);
 
   const handleMarkAsRead = async () => {
     if (unreadCount === 0) return;
     try {
       const token = await auth.currentUser?.getIdToken();
-      await axios.put(`http://localhost:5000/api/notifications/read`, {}, {
+      await axios.put(`http://localhost:5000/api/notifications/read-all`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUnreadCount(0);
@@ -100,6 +112,39 @@ export default function Navbar() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const formatTime = (isoString?: string) => {
+    if (!isoString) return '';
+    const diff = Math.floor((new Date().getTime() - new Date(isoString).getTime()) / 1000);
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+    return `${Math.floor(diff / 86400)}d`;
+  };
+
+  const getNotificationIcon = (type: string) => {
+    const t = type.toUpperCase();
+    if (t === 'LIKE') return <Heart size={14} color="#e0245e" />;
+    if (t === 'COMMENT') return <MessageCircle size={14} color="#1da1f2" />;
+    if (t === 'FRIEND_REQUEST') return <UserPlus size={14} color="#ff9800" />;
+    if (t === 'FRIEND_ACCEPTED') return <Users size={14} color="#17bf63" />;
+    if (t === 'FOLLOW') return <UserPlus size={14} color="#794bc4" />;
+    if (t === 'MESSAGE') return <MessageSquare size={14} color="#0084ff" />;
+    if (t === 'MENTION') return <AtSign size={14} color="#f45d22" />;
+    return <Info size={14} color="#888" />;
+  };
+
+  const getNotificationText = (n: any) => {
+    const t = n.type.toUpperCase();
+    if (t === 'LIKE') return 'liked your post.';
+    if (t === 'COMMENT') return 'commented on your post.';
+    if (t === 'FRIEND_REQUEST') return 'sent you a friend request.';
+    if (t === 'FRIEND_ACCEPTED') return 'accepted your friend request.';
+    if (t === 'FOLLOW') return 'started following you.';
+    if (t === 'MESSAGE') return `sent you a message...`;
+    if (t === 'MENTION') return 'mentioned you.';
+    return n.message || 'interacted with you.';
   };
 
   const navigate = useNavigate();
@@ -155,23 +200,34 @@ export default function Navbar() {
               </button>
               
               {showNotifications && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, width: '300px', background: '#fff', border: '1px solid #ccc', borderRadius: '8px', marginTop: '1rem', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', maxHeight: '400px', overflowY: 'auto' }}>
-                  <h4 style={{ padding: '1rem', margin: 0, borderBottom: '1px solid #eee' }}>Notifications</h4>
-                  {notifications.length === 0 ? (
-                    <p style={{ padding: '1rem', textAlign: 'center', color: '#777' }}>No notifications</p>
-                  ) : (
-                    notifications.map(n => (
-                      <div key={n.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderBottom: '1px solid #eee', background: n.is_read ? '#fff' : '#f0f8ff' }}>
-                        <img src={n.userAvatar ? `http://localhost:5000${n.userAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(n.username)}`} alt={n.username} style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
-                        <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                            <strong>{n.displayName}</strong> {n.type === 'like' ? 'liked your post' : n.type === 'comment' ? 'commented on your post' : 'started following you'}
-                          </p>
-                          <span style={{ fontSize: '0.75rem', color: '#888' }}>{new Date(n.created_at).toLocaleDateString()}</span>
+                <div style={{ position: 'absolute', top: '100%', right: 0, width: '350px', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '1rem', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', maxHeight: '420px', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Notifications</h4>
+                    <Link to="/notifications" onClick={() => setShowNotifications(false)} style={{ fontSize: '0.85rem', color: 'var(--primary-color)', textDecoration: 'none' }}>See all</Link>
+                  </div>
+                  <div style={{ overflowY: 'auto', flex: 1 }}>
+                    {notifications.length === 0 ? (
+                      <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>No notifications</p>
+                    ) : (
+                      notifications.slice(0, 10).map(n => (
+                        <div key={n.id} onClick={() => { setShowNotifications(false); navigate('/notifications'); }} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)', background: n.is_read ? 'transparent' : 'var(--hover-bg, rgba(0,132,255,0.05))', cursor: 'pointer', transition: 'background 0.2s' }}>
+                          <div style={{ position: 'relative' }}>
+                            <img src={n.sender_avatar ? (n.sender_avatar.startsWith('http') ? n.sender_avatar : `http://localhost:5000${n.sender_avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(n.sender_name)}`} alt={n.sender_username} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                            <div style={{ position: 'absolute', bottom: -2, right: -2, width: '18px', height: '18px', background: 'var(--card-bg)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {getNotificationIcon(n.type)}
+                            </div>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                              <strong>{n.sender_name}</strong> {getNotificationText(n)}
+                            </p>
+                            <span style={{ fontSize: '0.75rem', color: n.is_read ? 'var(--text-secondary)' : 'var(--primary-color)', fontWeight: n.is_read ? 'normal' : 600 }}>{formatTime(n.created_at)}</span>
+                          </div>
+                          {!n.is_read && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary-color)', marginTop: '4px' }} />}
                         </div>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>

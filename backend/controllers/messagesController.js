@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { getIo, getConnectedUsers } = require('../config/socket');
+const NotificationsModel = require('../models/notificationsModel');
 
 function getConversationId(userId1, userId2) {
   return [userId1, userId2].sort().join('_');
@@ -147,7 +148,13 @@ exports.sendMessage = async (req, res) => {
           // Mark as delivered immediately
           await db.execute(`UPDATE messages SET status = 'delivered' WHERE id = ?`, [msgObj.id]);
           msgObj.status = 'delivered';
+       } else {
+          // If offline, create notification
+          await NotificationsModel.createNotification(receiverId, senderId, 'MESSAGE', conversationId, message || 'Sent an image');
        }
+    } else {
+      // If socket is not running for some reason, fallback
+      await NotificationsModel.createNotification(receiverId, senderId, 'MESSAGE', conversationId, message || 'Sent an image');
     }
 
     res.status(200).json({ success: true, message: msgObj });

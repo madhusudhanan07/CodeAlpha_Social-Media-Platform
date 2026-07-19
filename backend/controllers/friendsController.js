@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const NotificationsModel = require('../models/notificationsModel');
 
 exports.sendRequest = async (req, res) => {
   try {
@@ -32,6 +33,8 @@ exports.sendRequest = async (req, res) => {
     await db.execute(`
       INSERT INTO friend_requests (sender_id, receiver_id) VALUES (?, ?)
     `, [senderId, receiverId]);
+
+    await NotificationsModel.createNotification(receiverId, senderId, 'FRIEND_REQUEST');
 
     res.status(200).json({ success: true, message: 'Friend request sent.' });
   } catch (error) {
@@ -69,6 +72,8 @@ exports.acceptRequest = async (req, res) => {
 
       await connection.commit();
       connection.release();
+
+      await NotificationsModel.createNotification(senderId, userId, 'FRIEND_ACCEPTED');
 
       res.status(200).json({ success: true, message: 'Request accepted.' });
     } catch (e) {
