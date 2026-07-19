@@ -21,6 +21,35 @@ class PostsModel {
     return await this.getPostById(postId);
   }
 
+  static async getTrendingPosts(currentUserId = null, limit = 10, offset = 0) {
+    const query = `
+      SELECT  
+        p.id, 
+        p.content, 
+        p.image_url, 
+        (SELECT GROUP_CONCAT(pi.image_url SEPARATOR ',') FROM post_images pi WHERE pi.post_id = p.id) as images,
+        p.created_at, 
+        p.updated_at,
+        u.firebase_uid as user_id, 
+        u.username, 
+        u.full_name as displayName, 
+        u.profile_picture as userAvatar,
+        (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likesCount,
+        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS commentsCount,
+        EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = ?) AS isLikedByCurrentUser
+      FROM posts p
+      JOIN users u ON p.user_id = u.firebase_uid
+      ORDER BY likesCount DESC, p.created_at DESC
+      LIMIT ${Number(limit) || 10} OFFSET ${Number(offset) || 0}
+    `;
+    const [rows] = await db.execute(query, [currentUserId || '']);
+    return rows.map(r => ({
+      ...r,
+      images: r.images ? r.images.split(',') : (r.image_url ? [r.image_url] : []),
+      isLikedByCurrentUser: !!r.isLikedByCurrentUser
+    }));
+  }
+
   static async getAllPosts(currentUserId = null, limit = 10, offset = 0) {
     const query = `
       SELECT  
