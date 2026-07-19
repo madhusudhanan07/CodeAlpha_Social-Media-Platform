@@ -10,23 +10,23 @@ export const getAuthToken = async () => {
   return null;
 };
 
-export const fetchPosts = async () => {
+export const fetchPosts = async (limit: number = 10, offset: number = 0) => {
   const token = await getAuthToken();
   if (!token) throw new Error('Not authenticated');
 
-  const response = await axios.get(API_URL, {
+  const response = await axios.get(`${API_URL}?limit=${limit}&offset=${offset}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.data.posts;
 };
 
-export const createPost = async (content: string, image_url: string = '') => {
+export const createPost = async (content: string, imageUrl: string = '', images: string[] = []) => {
   const token = await getAuthToken();
   if (!token) throw new Error('Not authenticated');
 
   const response = await axios.post(
     API_URL,
-    { content, image_url },
+    { content, image_url: imageUrl, images },
     { headers: { Authorization: `Bearer ${token}` } }
   );
   return response.data.post;

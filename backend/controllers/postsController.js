@@ -2,18 +2,18 @@ const PostsModel = require('../models/postsModel');
 
 exports.createPost = async (req, res) => {
   const { uid } = req.user;
-  const { content, image_url } = req.body;
+  const { content, image_url, images } = req.body;
 
-  if (!content || content.trim() === '') {
-    return res.status(400).json({ success: false, message: 'Post content cannot be empty' });
+  if ((!content || content.trim() === '') && (!images || images.length === 0)) {
+    return res.status(400).json({ success: false, message: 'Post content or image cannot be empty' });
   }
 
-  if (content.length > 500) {
+  if (content && content.length > 500) {
     return res.status(400).json({ success: false, message: 'Post cannot exceed 500 characters' });
   }
 
   try {
-    const newPost = await PostsModel.createPost(uid, content.trim(), image_url);
+    const newPost = await PostsModel.createPost(uid, content ? content.trim() : '', image_url, images);
     res.status(201).json({ success: true, post: newPost });
   } catch (error) {
     console.error('Error creating post:', error);
@@ -24,7 +24,9 @@ exports.createPost = async (req, res) => {
 exports.getAllPosts = async (req, res) => {
   try {
     const uid = req.user ? req.user.uid : null;
-    const posts = await PostsModel.getAllPosts(uid);
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = parseInt(req.query.offset) || 0;
+    const posts = await PostsModel.getAllPosts(uid, limit, offset);
     res.status(200).json({ success: true, posts });
   } catch (error) {
     console.error('Error fetching posts:', error);

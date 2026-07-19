@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -24,8 +24,9 @@ export default function Profile() {
   const [error, setError] = useState('');
   
   // Pagination
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -74,12 +75,14 @@ export default function Profile() {
     fetchProfileData();
   }, [user, navigate]);
 
-  const loadMore = async () => {
-    if (!hasMore || loading || !user || !targetUid) return;
+  const loadMorePosts = async () => {
+    if (!hasMore || loadingMore || !user || !targetUid) return;
+    setLoadingMore(true);
     try {
+      const nextPage = page + 1;
       const token = await auth.currentUser?.getIdToken();
       const headers = { Authorization: `Bearer ${token}` };
-      const res = await axios.get(`http://localhost:5000/api/profile/posts?limit=10&offset=${page * 10}${id ? `&userId=${id}` : ''}`, { headers });
+      const res = await axios.get(`http://localhost:5000/api/profile/posts?limit=10&offset=${nextPage * 10}${id ? `&userId=${id}` : ''}`, { headers });
       
       const morePosts: PostProps[] = res.data.posts.map((p: any) => ({
           id: p.id,
@@ -89,6 +92,7 @@ export default function Profile() {
           time: new Date(p.created_at).toLocaleString(),
           content: p.content,
           image: p.image_url ? `http://localhost:5000${p.image_url}` : undefined,
+          images: p.images || (p.image_url ? [p.image_url] : []),
           likes: p.likes_count || 0,
           comments: p.comments_count || 0,
           isLikedByCurrentUser: p.is_liked_by_current_user || false
@@ -98,17 +102,43 @@ export default function Profile() {
         setHasMore(false);
       }
 
-      setPosts([...posts, ...morePosts]);
-      setPage(page + 1);
+      setPosts(prev => [...prev, ...morePosts]);
+      setPage(nextPage);
     } catch (error) {
       console.error('Failed to load more posts', error);
+    } finally {
+      setLoadingMore(false);
     }
   };
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          loadMorePosts();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    
+    const sentinel = document.getElementById('profile-feed-sentinel');
+    if (sentinel) observer.observe(sentinel);
+    
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, loading, page, targetUid, user]);
+
+  const handleDelete = useCallback((id: number) => {
+    setPosts(prev => prev.filter(p => p.id !== id));
+  }, []);
+
+  const handleUpdate = useCallback((id: number, newContent: string) => {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, content: newContent } : p));
+  }, []);
 
   if (loading) return <div style={{ textAlign: 'center', marginTop: '3rem' }}>Loading Profile...</div>;
 
   return (
-    <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '0 1rem' }}>
+    <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '0 1rem' }} className="animate-fade-in">
       {error && <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
       
       {profile && (
@@ -150,29 +180,17 @@ export default function Profile() {
                   <PostCard 
                     key={post.id} 
                     post={post} 
-                    onDelete={(id) => setPosts(posts.filter(p => p.id !== id))}
-                    onUpdate={(id, newContent) => setPosts(posts.map(p => p.id === id ? { ...p, content: newContent } : p))}
+                    onDelete={handleDelete}
+                    onUpdate={handleUpdate}
                   />
                 ))}
               </div>
             )}
-            {hasMore && posts.length > 0 && (
-              <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-                <button 
-                  onClick={loadMore}
-                  style={{
-                    padding: '0.5rem 1.5rem',
-                    backgroundColor: '#f0f2f5',
-                    color: '#333',
-                    border: '1px solid #ccc',
-                    borderRadius: '20px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Load More
-                </button>
-              </div>
-            )}
+            {/* Sentinel for IntersectionObserver */}
+            <div id="profile-feed-sentinel" style={{ height: '20px', margin: '20px 0' }}>
+              {loadingMore && <div style={{ textAlign: 'center', color: '#666' }}>Loading more...</div>}
+              {!hasMore && posts.length > 0 && <div style={{ textAlign: 'center', color: '#999', marginTop: '10px' }}>You're all caught up!</div>}
+            </div>
           </div>
         </div>
       )}

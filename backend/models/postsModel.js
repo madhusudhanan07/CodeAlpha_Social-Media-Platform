@@ -1,23 +1,33 @@
 const db = require('../config/db');
 
 class PostsModel {
-  static async createPost(userId, content, imageUrl = null) {
+  static async createPost(userId, content, imageUrl = null, images = []) {
+    // If no imageUrl is provided but images array has items, set first one as imageUrl
+    const primaryImage = imageUrl || (images && images.length > 0 ? images[0] : null);
+
     const query = `
       INSERT INTO posts (user_id, content, image_url)
       VALUES (?, ?, ?)
     `;
-    const [result] = await db.execute(query, [userId, content, imageUrl]);
+    const [result] = await db.execute(query, [userId, content, primaryImage]);
+    const postId = result.insertId;
+
+    if (images && images.length > 0) {
+      const imageValues = images.map(img => [postId, img]);
+      await db.query(`INSERT INTO post_images (post_id, image_url) VALUES ?`, [imageValues]);
+    }
     
     // Fetch and return the newly created post with user details
-    return await this.getPostById(result.insertId);
+    return await this.getPostById(postId);
   }
 
-  static async getAllPosts(currentUserId = null) {
+  static async getAllPosts(currentUserId = null, limit = 10, offset = 0) {
     const query = `
-      SELECT 
+      SELECT  
         p.id, 
         p.content, 
         p.image_url, 
+        (SELECT GROUP_CONCAT(pi.image_url SEPARATOR ',') FROM post_images pi WHERE pi.post_id = p.id) as images,
         p.created_at, 
         p.updated_at,
         u.firebase_uid as user_id, 
@@ -30,10 +40,12 @@ class PostsModel {
       FROM posts p
       JOIN users u ON p.user_id = u.firebase_uid
       ORDER BY p.created_at DESC
+      LIMIT ${Number(limit) || 10} OFFSET ${Number(offset) || 0}
     `;
     const [rows] = await db.execute(query, [currentUserId || '']);
     return rows.map(r => ({
       ...r,
+      images: r.images ? r.images.split(',') : (r.image_url ? [r.image_url] : []),
       isLikedByCurrentUser: !!r.isLikedByCurrentUser
     }));
   }
@@ -44,6 +56,7 @@ class PostsModel {
         p.id, 
         p.content, 
         p.image_url, 
+        (SELECT GROUP_CONCAT(pi.image_url SEPARATOR ',') FROM post_images pi WHERE pi.post_id = p.id) as images,
         p.created_at, 
         p.updated_at,
         u.firebase_uid as user_id, 
@@ -60,6 +73,7 @@ class PostsModel {
     const [rows] = await db.execute(query, [currentUserId || '', postId]);
     return rows.length > 0 ? {
       ...rows[0],
+      images: rows[0].images ? rows[0].images.split(',') : (rows[0].image_url ? [rows[0].image_url] : []),
       isLikedByCurrentUser: !!rows[0].isLikedByCurrentUser
     } : null;
   }
@@ -90,6 +104,7 @@ class PostsModel {
         p.id, 
         p.content, 
         p.image_url, 
+        (SELECT GROUP_CONCAT(pi.image_url SEPARATOR ',') FROM post_images pi WHERE pi.post_id = p.id) as images_list,
         p.created_at, 
         p.updated_at,
         u.firebase_uid as user_id, 
@@ -109,6 +124,7 @@ class PostsModel {
     const [rows] = await db.execute(query, [userId, userId]);
     return rows.map(r => ({
       ...r,
+      images: r.images_list ? r.images_list.split(',') : (r.image_url ? [r.image_url] : []),
       is_liked_by_current_user: !!r.is_liked_by_current_user
     }));
   }

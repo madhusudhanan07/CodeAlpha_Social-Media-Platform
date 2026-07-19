@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { ThumbsUp, MessageSquare, Share2, MoreVertical, Trash2, Edit2, Check, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toggleLike, deletePost, updatePost, fetchComments, createComment } from '../../services/postService';
@@ -12,6 +12,7 @@ export interface PostProps {
   time: string;
   content: string;
   image?: string;
+  images?: string[];
   likes: number;
   comments: number;
   isLikedByCurrentUser: boolean;
@@ -25,7 +26,7 @@ interface CommentProps {
   created_at: string;
 }
 
-export default function PostCard({ post, onDelete, onUpdate }: { post: PostProps; onDelete?: (id: number) => void; onUpdate?: (id: number, content: string) => void }) {
+const PostCard = memo(({ post, onDelete, onUpdate }: { post: PostProps; onDelete?: (id: number) => void; onUpdate?: (id: number, content: string) => void }) => {
   const { user } = useAuth();
   
   const [liked, setLiked] = useState(post.isLikedByCurrentUser);
@@ -40,7 +41,10 @@ export default function PostCard({ post, onDelete, onUpdate }: { post: PostProps
   const [newComment, setNewComment] = useState('');
   const [commentsCount, setCommentsCount] = useState(post.comments);
 
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
+
   const isAuthor = user?.uid === post.user_id;
+  const postImages = post.images && post.images.length > 0 ? post.images : (post.image ? [post.image] : []);
 
   const handleLike = async () => {
     // Optimistic UI Update
@@ -148,8 +152,72 @@ export default function PostCard({ post, onDelete, onUpdate }: { post: PostProps
         <p className={styles.content}>{post.content}</p>
       )}
       
-      {post.image && !isEditing && (
-        <img src={post.image} alt="Post content" className={styles.postImage} />
+      {!isEditing && postImages.length > 0 && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: postImages.length === 1 ? '1fr' : postImages.length === 2 ? '1fr 1fr' : 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '8px',
+          marginTop: '12px',
+          marginBottom: '12px',
+          borderRadius: '12px',
+          overflow: 'hidden'
+        }}>
+          {postImages.slice(0, 4).map((imgUrl, index) => (
+            <div 
+              key={index} 
+              style={{ position: 'relative', cursor: 'pointer', height: postImages.length === 1 ? 'auto' : '200px' }}
+              onClick={() => setActiveImageIndex(index)}
+            >
+              <img 
+                src={imgUrl.startsWith('http') ? imgUrl : `http://localhost:5000${imgUrl}`}
+                alt={`Post content ${index}`} 
+                style={{ width: '100%', height: '100%', objectFit: postImages.length === 1 ? 'contain' : 'cover', maxHeight: postImages.length === 1 ? '500px' : 'none' }}
+              />
+              {index === 3 && postImages.length > 4 && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 'bold' }}>
+                  +{postImages.length - 4}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Full Screen Image Viewer Modal */}
+      {activeImageIndex !== null && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button 
+            onClick={() => setActiveImageIndex(null)}
+            style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', zIndex: 10000 }}
+          >
+            <X size={32} />
+          </button>
+          
+          {postImages.length > 1 && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setActiveImageIndex((activeImageIndex - 1 + postImages.length) % postImages.length); }}
+              style={{ position: 'absolute', left: '20px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: '48px', height: '48px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}
+            >
+              &#10094;
+            </button>
+          )}
+
+          <img 
+            src={postImages[activeImageIndex].startsWith('http') ? postImages[activeImageIndex] : `http://localhost:5000${postImages[activeImageIndex]}`}
+            alt="Fullscreen viewer"
+            style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }}
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {postImages.length > 1 && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setActiveImageIndex((activeImageIndex + 1) % postImages.length); }}
+              style={{ position: 'absolute', right: '20px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: '48px', height: '48px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}
+            >
+              &#10095;
+            </button>
+          )}
+        </div>
       )}
       
       <div className={styles.stats}>
@@ -194,4 +262,6 @@ export default function PostCard({ post, onDelete, onUpdate }: { post: PostProps
       )}
     </div>
   );
-}
+});
+
+export default PostCard;

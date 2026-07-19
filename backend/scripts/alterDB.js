@@ -25,6 +25,13 @@ async function alterTables() {
       `);
     }
 
+    if (!columnNames.includes('cover_photo')) {
+      await db.execute(`
+        ALTER TABLE users
+        ADD COLUMN cover_photo VARCHAR(255) DEFAULT NULL
+      `);
+    }
+
     // Ensure follows table exists for profile statistics
     await db.execute(`
       CREATE TABLE IF NOT EXISTS follows (
@@ -81,6 +88,17 @@ async function alterTables() {
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
         FOREIGN KEY (sender_id) REFERENCES users(firebase_uid) ON DELETE CASCADE,
         FOREIGN KEY (receiver_id) REFERENCES users(firebase_uid) ON DELETE CASCADE
+      )
+    `);
+
+    // Ensure post_images table exists for multi-image uploads
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS post_images (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        post_id INT NOT NULL,
+        image_url VARCHAR(255) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
       )
     `);
 

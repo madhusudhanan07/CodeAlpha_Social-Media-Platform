@@ -4,7 +4,7 @@ class ProfileModel {
   static async getProfileByUid(firebase_uid, callerUid = null) {
     const query = `
       SELECT 
-        firebase_uid, full_name, username, email, bio, profile_picture, location, website, joined_date
+        firebase_uid, full_name, username, email, bio, profile_picture, cover_photo, location, website, joined_date
       FROM users 
       WHERE firebase_uid = ?
     `;
@@ -65,6 +65,16 @@ class ProfileModel {
     const query = `
       UPDATE users 
       SET profile_picture = ?
+      WHERE firebase_uid = ?
+    `;
+    const [result] = await db.execute(query, [imagePath, firebase_uid]);
+    return result.affectedRows > 0;
+  }
+
+  static async updateCoverPhoto(firebase_uid, imagePath) {
+    const query = `
+      UPDATE users 
+      SET cover_photo = ?
       WHERE firebase_uid = ?
     `;
     const [result] = await db.execute(query, [imagePath, firebase_uid]);

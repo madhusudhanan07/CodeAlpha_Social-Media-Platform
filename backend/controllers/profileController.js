@@ -48,6 +48,32 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+exports.uploadCoverPhoto = async (req, res) => {
+  const { uid } = req.user;
+  
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No image uploaded' });
+  }
+
+  try {
+    const imagePath = `/uploads/profile/${req.file.filename}`;
+    const updated = await ProfileModel.updateCoverPhoto(uid, imagePath);
+
+    if (!updated) {
+       return res.status(404).json({ success: false, message: 'Profile not found to update' });
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Cover photo updated successfully',
+      cover_photo: imagePath
+    });
+  } catch (error) {
+    console.error('Error uploading cover photo:', error);
+    res.status(500).json({ success: false, message: 'Server error while uploading cover photo' });
+  }
+};
+
 exports.uploadProfilePicture = async (req, res) => {
   const { uid } = req.user;
   

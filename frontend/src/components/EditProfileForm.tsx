@@ -20,6 +20,9 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initialData.profile_picture ? `http://localhost:5000${initialData.profile_picture}` : null);
   
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(initialData.cover_photo ? `http://localhost:5000${initialData.cover_photo}` : null);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -56,6 +59,19 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
         });
       }
 
+      // 1.5. Upload new cover photo if selected
+      if (coverFile) {
+        const formDataPayload = new FormData();
+        formDataPayload.append('cover_photo', coverFile);
+
+        await axios.post('http://localhost:5000/api/profile/upload-cover', formDataPayload, {
+          headers: {
+            ...headers,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+      }
+
       // 2. Update text data
       await axios.put('http://localhost:5000/api/profile/update', formData, { headers });
 
@@ -82,6 +98,20 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
     }
   };
 
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!validTypes.includes(file.type)) {
+        setError('Only .jpg, .jpeg, and .png images are allowed.');
+        return;
+      }
+      setCoverFile(file);
+      setCoverPreview(URL.createObjectURL(file));
+      setError('');
+    }
+  };
+
   return (
     <form onSubmit={handleUpdate} style={{
       backgroundColor: '#fff',
@@ -97,6 +127,22 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
       <h3 style={{ margin: '0 0 1rem 0' }}>Edit Profile</h3>
       
       {error && <div style={{ color: '#d32f2f', backgroundColor: '#ffebee', padding: '0.75rem', borderRadius: '4px' }}>{error}</div>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <label style={{ fontWeight: '500', color: '#555' }}>Cover Photo</label>
+        {coverPreview && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+            <img src={coverPreview} alt="Cover Preview" style={{ width: '100%', height: '120px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #ddd' }} />
+          </div>
+        )}
+        <input 
+          type="file" 
+          accept=".jpg,.jpeg,.png"
+          onChange={handleCoverChange}
+          style={{ padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+          disabled={loading}
+        />
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         <label style={{ fontWeight: '500', color: '#555' }}>Profile Picture</label>

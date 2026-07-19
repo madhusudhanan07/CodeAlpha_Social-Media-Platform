@@ -5,6 +5,7 @@ export interface UserProfile {
   email: string;
   bio: string;
   profile_picture: string;
+  cover_photo?: string;
   joined_date: string;
   total_posts: number;
   followers: number;
@@ -12,4 +13,5 @@ export interface UserProfile {
   likes_received: number;
   location?: string;
   website?: string;
+  is_following_current?: boolean;
 }

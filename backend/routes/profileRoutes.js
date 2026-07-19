@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const verifyToken = require('../middleware/authMiddleware');
-const { getProfile, updateProfile, uploadProfilePicture, getUserPosts } = require('../controllers/profileController');
+const { getProfile, updateProfile, uploadProfilePicture, uploadCoverPhoto, getUserPosts } = require('../controllers/profileController');
 
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, '../uploads/profile');
@@ -46,5 +46,6 @@ router.get('/:firebase_uid', verifyToken, getProfile);
 router.put('/', verifyToken, updateProfile); 
 router.put('/update', verifyToken, updateProfile); // backward compatibility
 router.post('/upload', verifyToken, upload.single('profile_picture'), uploadProfilePicture);
+router.post('/upload-cover', verifyToken, upload.single('cover_photo'), uploadCoverPhoto);
 
 module.exports = router;

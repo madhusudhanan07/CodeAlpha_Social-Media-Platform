@@ -4,10 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { auth } from '../config/firebase';
-import { Bell, Search, MessageSquare } from 'lucide-react';
+import { Bell, Search, MessageSquare, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar() { 
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [dbAvatar, setDbAvatar] = useState<string | null>(null);
 
   useEffect(() => {
@@ -103,7 +105,7 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   return (
-    <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderBottom: '1px solid #ccc' }}>
+    <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--nav-bg)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
         <Link to="/" style={{ textDecoration: 'none', color: '#0a66c2', fontWeight: 700, fontSize: '1.25rem' }}>Social App</Link>
         
@@ -144,7 +146,7 @@ export default function Navbar() {
                 onClick={() => { setShowNotifications(!showNotifications); handleMarkAsRead(); }}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center' }}
               >
-                <Bell size={24} color="#333" />
+                <Bell size={24} color="var(--text-primary)" />
                 {unreadCount > 0 && (
                   <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                     {unreadCount}
@@ -176,9 +178,17 @@ export default function Navbar() {
             
             <div style={{ position: 'relative' }}>
               <Link to="/chat" style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', color: 'inherit' }}>
-                <MessageSquare size={24} color="#333" />
+                <MessageSquare size={24} color="var(--text-primary)" />
               </Link>
             </div>
+
+            <button 
+              onClick={toggleTheme} 
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-primary)' }}
+              title="Toggle Theme"
+            >
+              {theme === 'light' ? <Moon size={24} /> : <Sun size={24} />}
+            </button>
 
             <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: 'inherit' }}>
               {dbAvatar || user.photoURL ? (
