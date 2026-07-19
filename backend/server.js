@@ -21,6 +21,7 @@ const followRoutes = require('./routes/followsRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const notificationsRoutes = require('./routes/notificationsRoutes');
 const searchRoutes = require('./routes/searchRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -31,6 +32,7 @@ app.use('/api/follows', followRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/chat', chatRoutes);
 
 // ==================== Health Check ====================
 app.get('/', (req, res) => {
@@ -50,7 +52,14 @@ async function startServer() {
     console.log('✅ MySQL Connected Successfully');
     connection.release();
 
-    app.listen(PORT, () => {
+    const http = require('http');
+    const { initSocket } = require('./config/socket');
+    
+    // Create HTTP server manually so Socket.io can attach to it
+    const server = http.createServer(app);
+    initSocket(server);
+
+    server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 http://localhost:${PORT}`);
     });

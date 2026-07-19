@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { auth } from '../config/firebase';
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, MessageSquare } from 'lucide-react';
 
 export default function Navbar() { 
   const { user, logout } = useAuth();
@@ -172,6 +172,12 @@ export default function Navbar() {
                   )}
                 </div>
               )}
+            </div>
+            
+            <div style={{ position: 'relative' }}>
+              <Link to="/chat" style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', color: 'inherit' }}>
+                <MessageSquare size={24} color="#333" />
+              </Link>
             </div>
 
             <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: 'inherit' }}>
