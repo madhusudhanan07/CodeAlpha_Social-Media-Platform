@@ -1,6 +1,7 @@
 const { Server } = require('socket.io');
 
 const onlineUsers = new Map(); // Map<firebase_uid, socket.id>
+let ioInstance = null;
 
 function initSocket(server) {
   const io = new Server(server, {
@@ -10,6 +11,8 @@ function initSocket(server) {
     }
   });
 
+  ioInstance = io;
+
   io.on('connection', (socket) => {
     console.log(`Socket Connected: ${socket.id}`);
 
@@ -17,7 +20,7 @@ function initSocket(server) {
     const userId = socket.handshake.query.userId;
     if (userId) {
       onlineUsers.set(userId, socket.id);
-      io.emit('online_status', { userId, status: 'online' });
+      io.emit('online', { userId });
     }
 
     socket.on('join_room', (room) => {
@@ -44,8 +47,8 @@ function initSocket(server) {
       io.to(msg.conversationId).emit('receive_message', msg);
     });
 
-    socket.on('message_read', ({ conversationId, readerId }) => {
-      io.to(conversationId).emit('message_read', { conversationId, readerId });
+    socket.on('message_seen', ({ conversationId, readerId, messageId }) => {
+      io.to(conversationId).emit('message_seen', { conversationId, readerId, messageId });
     });
 
     socket.on('disconnect', () => {
@@ -59,7 +62,7 @@ function initSocket(server) {
       }
 
       if (disconnectedUserId) {
-        io.emit('online_status', { userId: disconnectedUserId, status: 'offline', lastSeen: new Date() });
+        io.emit('offline', { userId: disconnectedUserId, lastSeen: new Date() });
       }
       console.log(`Socket Disconnected: ${socket.id}`);
     });
@@ -68,4 +71,14 @@ function initSocket(server) {
   return io;
 }
 
-module.exports = { initSocket, onlineUsers };
+function getIo() {
+  return ioInstance;
+}
+
+function getConnectedUsers() {
+  return Object.fromEntries(onlineUsers);
+}
+
+module.exports = { initSocket, getIo, getConnectedUsers };
+
+

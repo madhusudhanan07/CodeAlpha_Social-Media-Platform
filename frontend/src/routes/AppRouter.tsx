@@ -11,6 +11,7 @@ import NotFound from '../pages/NotFound';
 import ProtectedRoute from './ProtectedRoute';
 import EditProfile from '../pages/EditProfile';
 import Chat from '../pages/Chat';
+import Friends from '../pages/Friends';
 
 export default function AppRouter() {
   return (
@@ -29,6 +30,8 @@ export default function AppRouter() {
             <Route path="create" element={<CreatePost />} />
             <Route path="settings" element={<Settings />} />
             <Route path="chat" element={<Chat />} />
+            <Route path="messages" element={<Chat />} />
+            <Route path="friends" element={<Friends />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

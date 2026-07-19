@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { auth } from '../config/firebase';
-import { Bell, Search, MessageSquare, Moon, Sun } from 'lucide-react';
+import { Bell, Search, MessageSquare, Moon, Sun, Users } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar() { 
@@ -177,8 +177,14 @@ export default function Navbar() {
             </div>
             
             <div style={{ position: 'relative' }}>
-              <Link to="/chat" style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', color: 'inherit' }}>
+              <Link to="/chat" style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', color: 'inherit' }} title="Chat">
                 <MessageSquare size={24} color="var(--text-primary)" />
+              </Link>
+            </div>
+
+            <div style={{ position: 'relative' }}>
+              <Link to="/friends" style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', color: 'inherit' }} title="Friends">
+                <Users size={24} color="var(--text-primary)" />
               </Link>
             </div>
 

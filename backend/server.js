@@ -21,9 +21,10 @@ const followRoutes = require('./routes/followsRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const notificationsRoutes = require('./routes/notificationsRoutes');
 const searchRoutes = require('./routes/searchRoutes');
-const chatRoutes = require('./routes/chatRoutes');
+const messagesRoutes = require('./routes/messagesRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const exploreRoutes = require('./routes/exploreRoutes');
+const friendsRoutes = require('./routes/friendsRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -35,9 +36,10 @@ app.use('/api/follow', followRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/search', searchRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api/messages', messagesRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/explore', exploreRoutes);
+app.use('/api/friends', friendsRoutes);
 
 // ==================== Health Check ====================
 app.get('/', (req, res) => {
