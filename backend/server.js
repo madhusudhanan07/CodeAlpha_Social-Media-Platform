@@ -26,6 +26,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const exploreRoutes = require('./routes/exploreRoutes');
 const friendsRoutes = require('./routes/friendsRoutes');
 const savedRoutes = require('./routes/savedRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -42,6 +43,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/explore', exploreRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/saved', savedRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // ==================== Health Check ====================
 app.get('/', (req, res) => {

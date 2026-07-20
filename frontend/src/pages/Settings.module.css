@@ -1,0 +1,576 @@
+/* ─── Layout ─────────────────────────────────────────────────────── */
+.page {
+  display: flex;
+  gap: 0;
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Sidebar ────────────────────────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem 0;
+  height: fit-content;
+  position: sticky;
+  top: 80px;
+}
+
+.sidebarTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 0 1.25rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.5rem;
+}
+
+.sidebarItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: all 0.18s;
+  border-left: 3px solid transparent;
+}
+
+.sidebarItem:hover {
+  background: var(--hover-bg, rgba(0,0,0,0.04));
+  color: var(--text-primary);
+}
+
+.sidebarItem.active {
+  background: var(--hover-bg, rgba(0,115,177,0.07));
+  color: var(--primary-color);
+  border-left-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.sidebarDanger {
+  color: #e74c3c !important;
+}
+.sidebarDanger:hover {
+  background: rgba(231,76,60,0.08) !important;
+}
+
+/* ─── Content Panel ──────────────────────────────────────────────── */
+.content {
+  flex: 1;
+  min-width: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  margin-left: 1.5rem;
+  overflow: hidden;
+}
+
+.panelHeader {
+  padding: 1.75rem 2rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.panelHeader h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.panelHeader .panelIcon {
+  color: var(--primary-color);
+}
+
+.panelBody {
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* ─── Field ──────────────────────────────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.input {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.97rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0,115,177,0.12);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.charCount {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* ─── Avatar Upload (clickable overlay) ─────────────────────────── */
+.avatarUploadWrap {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  /* subtle ring */
+  box-shadow: 0 0 0 3px var(--border-color);
+  transition: box-shadow 0.2s;
+}
+
+.avatarUploadWrap:hover {
+  box-shadow: 0 0 0 3px var(--primary-color);
+}
+
+.avatarLarge {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatarLargePlaceholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 2.2rem;
+  font-weight: 700;
+  user-select: none;
+}
+
+.avatarOverlay {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  border: 2px solid var(--card-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.avatarUploadWrap:hover .avatarOverlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.uploadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.uploadBtn:hover {
+  background: var(--hover-bg);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* ─── Save Button ────────────────────────────────────────────────── */
+.saveBtn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.5rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary-color);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.saveBtn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.saveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Toggle Row ─────────────────────────────────────────────────── */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.toggleRow:last-child {
+  border-bottom: none;
+}
+
+.toggleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.toggleLabel {
+  font-size: 0.97rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.toggleDesc {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+}
+
+/* ─── Toggle Switch ──────────────────────────────────────────────── */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border-color);
+  border-radius: 26px;
+  cursor: pointer;
+  transition: background 0.25s;
+}
+
+.slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.25s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+
+.switch input:checked + .slider {
+  background: var(--primary-color);
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(22px);
+}
+
+/* ─── Select ─────────────────────────────────────────────────────── */
+.select {
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 180px;
+}
+
+.select:focus {
+  border-color: var(--primary-color);
+}
+
+/* ─── Theme Cards ────────────────────────────────────────────────── */
+.themeGrid {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.themeCard {
+  flex: 1;
+  min-width: 100px;
+  max-width: 150px;
+  border: 2px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.25rem 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--input-bg);
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.themeCard:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.themeCard.themeCardActive {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(0,115,177,0.06);
+}
+
+/* ─── Danger Zone ────────────────────────────────────────────────── */
+.dangerCard {
+  background: rgba(231,76,60,0.05);
+  border: 1px solid rgba(231,76,60,0.25);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dangerInfo h4 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin: 0 0 0.3rem;
+}
+
+.dangerInfo p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.dangerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.3rem;
+  border-radius: 10px;
+  border: 1px solid #e74c3c;
+  background: transparent;
+  color: #e74c3c;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.dangerBtn:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+.downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.3rem;
+  border-radius: 10px;
+  border: 1px solid var(--primary-color);
+  background: transparent;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.downloadBtn:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* ─── Skeleton ───────────────────────────────────────────────────── */
+.skeleton {
+  background: var(--border-color);
+  border-radius: 8px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%   { opacity: 0.7; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 0.7; }
+}
+
+.skeletonAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+}
+
+.skeletonLine {
+  height: 14px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+}
+
+/* ─── Modal ──────────────────────────────────────────────────────── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s;
+}
+
+.modal {
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+}
+
+.modalTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modalActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+/* ─── Divider ────────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 0.5rem 0;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .page {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: 0.75rem;
+  }
+  .sidebarTitle { display: none; }
+  .sidebarItem {
+    border-left: none;
+    border-radius: 10px;
+    border-bottom: 2px solid transparent;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+  .sidebarItem.active {
+    border-left: none;
+    border-bottom-color: var(--primary-color);
+  }
+  .content {
+    margin-left: 0;
+    margin-top: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .panelBody { padding: 1.25rem 1rem; }
+  .panelHeader { padding: 1.25rem 1rem 1rem; }
+  .dangerCard { flex-direction: column; align-items: flex-start; }
+  .themeGrid { gap: 0.75rem; }
+  .themeCard { min-width: 80px; }
+  .avatarRow { flex-direction: column; align-items: flex-start; }
+}

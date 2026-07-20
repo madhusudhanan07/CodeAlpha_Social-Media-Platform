@@ -52,10 +52,10 @@ export default function Explore() {
           headers: { Authorization: `Bearer ${token}` }
         });
         const mapped: UserPreview[] = res.data.suggestions.map((u: any) => ({
-          id: u.firebase_uid,
+          id: u.id || u.firebase_uid,
           username: u.username,
-          displayName: u.full_name,
-          avatar: u.profile_picture ? `http://localhost:5000${u.profile_picture}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`,
+          displayName: u.displayName || u.full_name,
+          avatar: u.avatar ? `http://localhost:5000${u.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`,
           bio: u.bio,
           isFollowing: false
         }));

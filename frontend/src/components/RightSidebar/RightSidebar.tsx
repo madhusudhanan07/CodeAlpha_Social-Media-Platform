@@ -6,11 +6,12 @@ import { useAuth } from '../../context/AuthContext';
 import styles from './RightSidebar.module.css';
 
 const trendingTopics = [
-  { tag: '#React', posts: '120K posts' },
-  { tag: '#TypeScript', posts: '85K posts' },
-  { tag: '#NodeJS', posts: '90K posts' },
-  { tag: '#Firebase', posts: '45K posts' },
-  { tag: '#CodeAlpha', posts: '10K posts' }
+  { tag: '#ArtificialIntelligence', posts: '3.2M posts' },
+  { tag: '#Olympics2024', posts: '2.5M posts' },
+  { tag: '#ClimateAction', posts: '1.1M posts' },
+  { tag: '#SpaceExploration', posts: '850K posts' },
+  { tag: '#GlobalTech', posts: '620K posts' },
+  { tag: '#WorldNews', posts: '450K posts' }
 ];
 
 export default function RightSidebar() {
