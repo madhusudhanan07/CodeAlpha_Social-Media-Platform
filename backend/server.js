@@ -25,6 +25,7 @@ const messagesRoutes = require('./routes/messagesRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const exploreRoutes = require('./routes/exploreRoutes');
 const friendsRoutes = require('./routes/friendsRoutes');
+const savedRoutes = require('./routes/savedRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -40,6 +41,7 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/explore', exploreRoutes);
 app.use('/api/friends', friendsRoutes);
+app.use('/api/saved', savedRoutes);
 
 // ==================== Health Check ====================
 app.get('/', (req, res) => {
@@ -69,6 +71,7 @@ async function startServer() {
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 http://localhost:${PORT}`);
+      // Restart signal
     });
   } catch (err) {
     console.error('❌ Failed to connect to MySQL');

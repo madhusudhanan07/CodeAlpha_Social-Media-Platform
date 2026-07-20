@@ -1,0 +1,161 @@
+.container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border-radius: 24px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  outline: none;
+  font-size: 1rem;
+  transition: box-shadow 0.2s;
+}
+
+.searchInput:focus {
+  box-shadow: 0 0 0 2px var(--primary-color-alpha);
+  border-color: var(--primary-color);
+}
+
+.toggleBtn {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggleBtn:hover {
+  background: var(--hover-bg);
+  color: var(--primary-color);
+}
+
+/* Collections Bar */
+.collectionsList {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.collectionTab {
+  padding: 0.6rem 1.2rem;
+  border-radius: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.collectionTab:hover {
+  background: var(--hover-bg);
+}
+
+.collectionTab.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.newCollectionBtn {
+  padding: 0.6rem 1.2rem;
+  border-radius: 20px;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  color: var(--primary-color);
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.newCollectionBtn:hover {
+  background: var(--primary-color-alpha);
+}
+
+/* Post Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--card-bg);
+  border-radius: 16px;
+  border: 1px dashed var(--border-color);
+  color: var(--text-secondary);
+  margin-top: 2rem;
+}
+
+.emptyState h2 {
+  color: var(--text-primary);
+  margin-top: 1rem;
+}
+
+.skeletonCard {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  height: 350px;
+  border: 1px solid var(--border-color);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.7; }
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+}

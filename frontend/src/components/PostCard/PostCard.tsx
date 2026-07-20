@@ -1,5 +1,6 @@
-import { useState, memo } from 'react';
-import { ThumbsUp, MessageSquare, Share2, MoreVertical, Trash2, Edit2, Check, X } from 'lucide-react';
+import React, { useState, memo } from 'react';
+import toast from 'react-hot-toast';
+import { ThumbsUp, MessageSquare, Share2, MoreVertical, Trash2, Edit2, Check, X, Bookmark } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toggleLike, deletePost, updatePost, fetchComments, createComment } from '../../services/postService';
 import styles from './PostCard.module.css';
@@ -26,8 +27,8 @@ interface CommentProps {
   created_at: string;
 }
 
-const PostCard = memo(({ post, onDelete, onUpdate }: { post: PostProps; onDelete?: (id: number) => void; onUpdate?: (id: number, content: string) => void }) => {
-  const { user } = useAuth();
+const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { post: PostProps; onDelete?: (id: number) => void; onUpdate?: (id: number, content: string) => void; overrideSavedRemoval?: (id: number) => void; }) => {
+  const { user, savedPostIds, toggleSavedPost } = useAuth();
   
   const [liked, setLiked] = useState(post.isLikedByCurrentUser);
   const [likesCount, setLikesCount] = useState(post.likes);
@@ -51,7 +52,7 @@ const PostCard = memo(({ post, onDelete, onUpdate }: { post: PostProps; onDelete
     const prevLiked = liked;
     const prevCount = likesCount;
     setLiked(!prevLiked);
-    setLikesCount(c => prevLiked ? c - 1 : c + 1);
+    setLikesCount((c: number) => prevLiked ? c - 1 : c + 1);
     
     try {
       const serverLiked = await toggleLike(post.id);
@@ -106,9 +107,32 @@ const PostCard = memo(({ post, onDelete, onUpdate }: { post: PostProps; onDelete
       const created = await createComment(post.id, newComment);
       setComments([...comments, created]);
       setNewComment('');
-      setCommentsCount(c => c + 1);
+      setCommentsCount((c: number) => c + 1);
     } catch (err) {
       console.error('Failed to post comment');
+    }
+  };
+
+  const isSaved = savedPostIds?.has(post.id) || false;
+
+  const handleSaveToggle = async () => {
+    try {
+      if (overrideSavedRemoval && isSaved) {
+        // If we are on Saved page, we optimistically remove it visually immediately
+        overrideSavedRemoval(post.id);
+        await toggleSavedPost(post.id);
+        toast.success('Removed from saved');
+        return;
+      }
+      
+      const newlySaved = await toggleSavedPost(post.id);
+      if (newlySaved) {
+        toast.success('Post saved');
+      } else {
+        toast.success('Removed from saved');
+      }
+    } catch {
+      toast.error('Could not update save status');
     }
   };
 
@@ -233,6 +257,10 @@ const PostCard = memo(({ post, onDelete, onUpdate }: { post: PostProps; onDelete
         <button className={styles.actionBtn} onClick={loadComments}>
           <MessageSquare className={styles.icon} />
           Comment
+        </button>
+        <button className={styles.actionBtn} onClick={handleSaveToggle} style={{ color: isSaved ? '#0a66c2' : 'inherit' }}>
+          <Bookmark className={styles.icon} fill={isSaved ? '#0a66c2' : 'none'} color={isSaved ? '#0a66c2' : 'currentColor'} />
+          {isSaved ? 'Saved' : 'Save'}
         </button>
         <button className={styles.actionBtn}>
           <Share2 className={styles.icon} />

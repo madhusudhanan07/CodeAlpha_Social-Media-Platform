@@ -13,6 +13,7 @@ import EditProfile from '../pages/EditProfile';
 import Chat from '../pages/Chat';
 import Friends from '../pages/Friends';
 import Notifications from '../pages/Notifications';
+import Saved from '../pages/Saved';
 
 export default function AppRouter() {
   return (
@@ -34,6 +35,7 @@ export default function AppRouter() {
             <Route path="messages" element={<Chat />} />
             <Route path="friends" element={<Friends />} />
             <Route path="notifications" element={<Notifications />} />
+            <Route path="saved" element={<Saved />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />
