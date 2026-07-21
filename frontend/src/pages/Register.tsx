@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import axios from 'axios';
+import { User, Mail, Lock, Sun, Moon } from 'lucide-react';
+import styles from './Auth.module.css';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Register() {
   const [fullName, setFullName] = useState('');
@@ -11,6 +14,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -66,36 +70,82 @@ export default function Register() {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '2rem auto' }}>
-      <h2>Register</h2>
-      {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
-      <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <input
-          type="text"
-          placeholder="Full Name"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Confirm Password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
-        <button type="submit">Register</button>
-      </form>
+    <div className={styles.container}>
+      <button
+        onClick={toggleTheme}
+        style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#ff00c8', zIndex: 10 }}
+        title="Toggle Theme"
+      >
+        {theme === 'light' ? <Moon size={28} /> : <Sun size={28} />}
+      </button>
+
+      <div className={styles.card}>
+        <h2 className={`${styles.title} ${styles.titlePink}`}>Register</h2>
+        
+        {error && <div className={styles.error}>{error}</div>}
+        
+        <form onSubmit={handleRegister} className={styles.form}>
+          <div className={styles.inputGroup}>
+            <User size={18} className={styles.icon} style={{ color: '#ff00c8' }} />
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              style={fullName ? { borderBottomColor: '#ff00c8' } : {}}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <Mail size={18} className={styles.icon} style={{ color: '#ff00c8' }} />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={email ? { borderBottomColor: '#ff00c8' } : {}}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <Lock size={18} className={styles.icon} style={{ color: '#ff00c8' }} />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={password ? { borderBottomColor: '#ff00c8' } : {}}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <Lock size={18} className={styles.icon} style={{ color: '#ff00c8' }} />
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              style={confirmPassword ? { borderBottomColor: '#ff00c8' } : {}}
+            />
+          </div>
+
+          <button type="submit" className={`${styles.submitBtn} ${styles.submitBtnPink}`}>
+            Register
+          </button>
+        </form>
+
+        <div className={styles.footer}>
+          <Link to="/login" className={`${styles.link} ${styles.linkPink}`}>Already have an account? Login</Link>
+        </div>
+      </div>
+
+      <style>{`
+        /* Overrides for pink color theme on Register input focus */
+        .${styles.inputGroup} input:focus {
+          border-bottom-color: #ff00c8 !important;
+          box-shadow: 0 5px 5px -5px rgba(255, 0, 200, 0.5) !important;
+        }
+      `}</style>
     </div>
   );
 }

@@ -278,7 +278,7 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
              {comments.map(c => (
                <div key={c.id} style={{ display: 'flex', gap: '10px' }}>
-                 <img src={c.userAvatar || 'https://i.pravatar.cc/150'} alt={c.displayName} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                 <img src={c.userAvatar ? (c.userAvatar.startsWith('http') ? c.userAvatar : `http://localhost:5000${c.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.displayName || 'User')}`} alt={c.displayName} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
                  <div style={{ background: '#f2f2f2', padding: '10px 15px', borderRadius: '12px', flex: 1 }}>
                    <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{c.displayName}</div>
                    <div style={{ fontSize: '14px', color: '#333' }}>{c.content}</div>

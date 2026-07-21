@@ -23,7 +23,8 @@ export default function Navbar() {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (isMounted && res.data?.profile?.profile_picture) {
-          setDbAvatar(`http://localhost:5000${res.data.profile.profile_picture}`);
+          const pic = res.data.profile.profile_picture;
+          setDbAvatar(pic.startsWith('http') ? pic : `http://localhost:5000${pic}`);
         }
       } catch (err) {
         // silently ignore error for avatar fetch
@@ -170,7 +171,7 @@ export default function Navbar() {
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ccc', borderRadius: '4px', marginTop: '0.5rem', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                 {searchResults.map(u => (
                   <div key={u.id} onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); navigate(`/profile/${u.id}`); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
-                    <img src={u.avatar ? `http://localhost:5000${u.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`} alt={u.username} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                    <img src={u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000${u.avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`} alt={u.username} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.displayName}</span>
                       <span style={{ fontSize: '0.8rem', color: '#666' }}>@{u.username}</span>
