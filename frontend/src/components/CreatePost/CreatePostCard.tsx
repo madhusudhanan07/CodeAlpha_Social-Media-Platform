@@ -94,7 +94,7 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
       const formattedPost: PostProps = {
         id: newPost.id,
         user_id: newPost.user_id,
-        userAvatar: newPost.userAvatar ? (newPost.userAvatar.startsWith('http') ? newPost.userAvatar : `http://localhost:5000${newPost.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(newPost.displayName || newPost.username || 'User')}`,
+        userAvatar: newPost.userAvatar ? (newPost.userAvatar.startsWith('http') ? newPost.userAvatar : `${import.meta.env.VITE_API_URL}${newPost.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(newPost.displayName || newPost.username || 'User')}`,
         username: newPost.displayName || newPost.username || 'User',
         time: new Date(newPost.created_at).toLocaleString(),
         content: newPost.content,

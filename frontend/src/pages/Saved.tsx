@@ -51,8 +51,8 @@ export default function Saved() {
       setLoading(true);
       const token = await getToken();
       const [postsRes, colsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/saved', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:5000/api/saved/collections/all', { headers: { Authorization: `Bearer ${token}` } })
+        axios.get('${import.meta.env.VITE_API_URL}/api/saved', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get('${import.meta.env.VITE_API_URL}/api/saved/collections/all', { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setPosts(postsRes.data.posts || []);
       setCollections(colsRes.data.collections || []);
@@ -105,7 +105,7 @@ export default function Saved() {
       const token = await getToken();
       if (modalMode === 'create') {
         const res = await axios.post(
-          'http://localhost:5000/api/saved/collections',
+          '${import.meta.env.VITE_API_URL}/api/saved/collections',
           { name },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -113,7 +113,7 @@ export default function Saved() {
         toast.success('Collection created!');
       } else {
         const res = await axios.patch(
-          `http://localhost:5000/api/saved/collections/${modalTargetId}`,
+          `${import.meta.env.VITE_API_URL}/api/saved/collections/${modalTargetId}`,
           { name },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -141,7 +141,7 @@ export default function Saved() {
     try {
       const token = await getToken();
       await axios.delete(
-        `http://localhost:5000/api/saved/collections/${confirmDeleteId}`,
+        `${import.meta.env.VITE_API_URL}/api/saved/collections/${confirmDeleteId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setCollections(prev => prev.filter(c => c.id !== confirmDeleteId));

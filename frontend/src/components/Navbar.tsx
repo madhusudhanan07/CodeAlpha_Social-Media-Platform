@@ -19,12 +19,12 @@ export default function Navbar() {
       if (!user) return;
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`http://localhost:5000/api/profile/${user.uid}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/profile/${user.uid}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (isMounted && res.data?.profile?.profile_picture) {
           const pic = res.data.profile.profile_picture;
-          setDbAvatar(pic.startsWith('http') ? pic : `http://localhost:5000${pic}`);
+          setDbAvatar(pic.startsWith('http') ? pic : `${import.meta.env.VITE_API_URL}${pic}`);
         }
       } catch (err) {
         // silently ignore error for avatar fetch
@@ -52,7 +52,7 @@ export default function Navbar() {
     searchTimeout.current = setTimeout(async () => {
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`http://localhost:5000/api/search/users?q=${searchQuery}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/search/users?q=${searchQuery}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSearchResults(res.data.users);
@@ -75,7 +75,7 @@ export default function Navbar() {
     const fetchNotifications = async () => {
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`http://localhost:5000/api/notifications`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setNotifications(res.data.notifications);
@@ -86,7 +86,7 @@ export default function Navbar() {
     };
     
     fetchNotifications();
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io('${import.meta.env.VITE_API_URL}', {
       query: { userId: user.uid }
     });
 
@@ -105,7 +105,7 @@ export default function Navbar() {
     if (unreadCount === 0) return;
     try {
       const token = await auth.currentUser?.getIdToken();
-      await axios.put(`http://localhost:5000/api/notifications/read-all`, {}, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/notifications/read-all`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUnreadCount(0);
@@ -171,7 +171,7 @@ export default function Navbar() {
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ccc', borderRadius: '4px', marginTop: '0.5rem', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                 {searchResults.map(u => (
                   <div key={u.id} onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); navigate(`/profile/${u.id}`); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
-                    <img src={u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000${u.avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`} alt={u.username} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                    <img src={u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `${import.meta.env.VITE_API_URL}${u.avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`} alt={u.username} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.displayName}</span>
                       <span style={{ fontSize: '0.8rem', color: '#666' }}>@{u.username}</span>
@@ -213,7 +213,7 @@ export default function Navbar() {
                       notifications.slice(0, 10).map(n => (
                         <div key={n.id} onClick={() => { setShowNotifications(false); navigate('/notifications'); }} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)', background: n.is_read ? 'transparent' : 'var(--hover-bg, rgba(0,132,255,0.05))', cursor: 'pointer', transition: 'background 0.2s' }}>
                           <div style={{ position: 'relative' }}>
-                            <img src={n.sender_avatar ? (n.sender_avatar.startsWith('http') ? n.sender_avatar : `http://localhost:5000${n.sender_avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(n.sender_name)}`} alt={n.sender_username} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                            <img src={n.sender_avatar ? (n.sender_avatar.startsWith('http') ? n.sender_avatar : `${import.meta.env.VITE_API_URL}${n.sender_avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(n.sender_name)}`} alt={n.sender_username} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                             <div style={{ position: 'absolute', bottom: -2, right: -2, width: '18px', height: '18px', background: 'var(--card-bg)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {getNotificationIcon(n.type)}
                             </div>

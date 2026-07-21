@@ -20,7 +20,7 @@ export default function ChatList({ onSelect, onlineMap }: ChatListProps) {
   const fetchConversations = async () => {
     try {
       const token = await auth.currentUser?.getIdToken();
-      const res = await axios.get('http://localhost:5000/api/chat', {
+      const res = await axios.get('${import.meta.env.VITE_API_URL}/api/chat', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setConversations(res.data.conversations);
@@ -37,7 +37,7 @@ export default function ChatList({ onSelect, onlineMap }: ChatListProps) {
     const search = async () => {
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`http://localhost:5000/api/search/users?q=${searchQuery}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/search/users?q=${searchQuery}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSearchResults(res.data.users);
@@ -76,7 +76,7 @@ export default function ChatList({ onSelect, onlineMap }: ChatListProps) {
                 style={{ display: 'flex', padding: '1rem', cursor: 'pointer', borderBottom: '1px solid #eee', alignItems: 'center', gap: '1rem' }}
               >
                 <div style={{ position: 'relative' }}>
-                  <img src={user.avatar ? `http://localhost:5000${user.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}`} alt={user.displayName} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
+                  <img src={user.avatar ? `${import.meta.env.VITE_API_URL}${user.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}`} alt={user.displayName} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
                   {onlineMap[user.id] && <div style={{ position: 'absolute', bottom: 0, right: 0, width: '12px', height: '12px', background: '#4caf50', borderRadius: '50%', border: '2px solid #fff' }} />}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -98,7 +98,7 @@ export default function ChatList({ onSelect, onlineMap }: ChatListProps) {
                   style={{ display: 'flex', padding: '1rem', cursor: 'pointer', borderBottom: '1px solid #eee', alignItems: 'center', gap: '1rem' }}
                 >
                   <div style={{ position: 'relative' }}>
-                    <img src={conv.otherAvatar ? `http://localhost:5000${conv.otherAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.otherUsername)}`} alt={conv.otherUsername} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
+                    <img src={conv.otherAvatar ? `${import.meta.env.VITE_API_URL}${conv.otherAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.otherUsername)}`} alt={conv.otherUsername} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
                     {onlineMap[conv.otherUserId] && <div style={{ position: 'absolute', bottom: 0, right: 0, width: '12px', height: '12px', background: '#4caf50', borderRadius: '50%', border: '2px solid #fff' }} />}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>

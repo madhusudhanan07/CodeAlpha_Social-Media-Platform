@@ -24,7 +24,7 @@ export default function Feed() {
         const mappedPosts: PostProps[] = data.map((post: any) => ({
           id: post.id,
           user_id: post.user_id,
-          userAvatar: post.userAvatar ? (post.userAvatar.startsWith('http') ? post.userAvatar : `http://localhost:5000${post.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(post.displayName || post.username || 'User')}`,
+          userAvatar: post.userAvatar ? (post.userAvatar.startsWith('http') ? post.userAvatar : `${import.meta.env.VITE_API_URL}${post.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(post.displayName || post.username || 'User')}`,
           username: post.displayName || post.username || 'User',
           time: new Date(post.created_at).toLocaleString(),
           content: post.content,
@@ -61,7 +61,7 @@ export default function Feed() {
       const mappedPosts: PostProps[] = data.map((post: any) => ({
         id: post.id,
         user_id: post.user_id,
-        userAvatar: post.userAvatar ? (post.userAvatar.startsWith('http') ? post.userAvatar : `http://localhost:5000${post.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(post.displayName || post.username || 'User')}`,
+        userAvatar: post.userAvatar ? (post.userAvatar.startsWith('http') ? post.userAvatar : `${import.meta.env.VITE_API_URL}${post.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(post.displayName || post.username || 'User')}`,
         username: post.displayName || post.username || 'User',
         time: new Date(post.created_at).toLocaleString(),
         content: post.content,

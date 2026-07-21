@@ -26,7 +26,7 @@ export default function Sidebar() {
       if (!user) return;
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`http://localhost:5000/api/profile/${user.uid}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/profile/${user.uid}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (isMounted && res.data?.profile) {
@@ -34,7 +34,7 @@ export default function Sidebar() {
           setProfilePreview({
             name: p.full_name,
             username: p.username,
-            avatar: p.profile_picture ? `http://localhost:5000${p.profile_picture}` : user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name)}`
+            avatar: p.profile_picture ? `${import.meta.env.VITE_API_URL}${p.profile_picture}` : user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name)}`
           });
         }
       } catch(err) {

@@ -36,12 +36,12 @@ export default function Notifications() {
     try {
       setLoading(true);
       const token = await getToken();
-      const res = await axios.get(`http://localhost:5000/api/notifications?filter=${currentFilter}`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/notifications?filter=${currentFilter}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(res.data.notifications.map((n: any) => ({
         ...n,
-        sender_avatar: n.sender_avatar ? (n.sender_avatar.startsWith('http') ? n.sender_avatar : `http://localhost:5000${n.sender_avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(n.sender_name)}`
+        sender_avatar: n.sender_avatar ? (n.sender_avatar.startsWith('http') ? n.sender_avatar : `${import.meta.env.VITE_API_URL}${n.sender_avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(n.sender_name)}`
       })));
     } catch (err) {
       toast.error('Failed to load notifications');
@@ -57,7 +57,7 @@ export default function Notifications() {
   // Socket
   useEffect(() => {
     if (!user) return;
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io('${import.meta.env.VITE_API_URL}', {
       query: { userId: user.uid }
     });
 
@@ -65,7 +65,7 @@ export default function Notifications() {
       // Map avatar immediately
       const mapped = {
         ...newNotif,
-        sender_avatar: newNotif.sender_avatar ? (newNotif.sender_avatar.startsWith('http') ? newNotif.sender_avatar : `http://localhost:5000${newNotif.sender_avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(newNotif.sender_name)}`
+        sender_avatar: newNotif.sender_avatar ? (newNotif.sender_avatar.startsWith('http') ? newNotif.sender_avatar : `${import.meta.env.VITE_API_URL}${newNotif.sender_avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(newNotif.sender_name)}`
       };
       setNotifications(prev => [mapped, ...prev]);
       toast.success(`New notification from ${newNotif.sender_name}`);
@@ -82,7 +82,7 @@ export default function Notifications() {
     e.stopPropagation();
     try {
       const token = await getToken();
-      await axios.put(`http://localhost:5000/api/notifications/read/${id}`, {}, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/notifications/read/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
@@ -94,7 +94,7 @@ export default function Notifications() {
   const handleMarkAllRead = async () => {
     try {
       const token = await getToken();
-      await axios.put('http://localhost:5000/api/notifications/read-all', {}, {
+      await axios.put('${import.meta.env.VITE_API_URL}/api/notifications/read-all', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
@@ -109,7 +109,7 @@ export default function Notifications() {
     e.stopPropagation();
     try {
       const token = await getToken();
-      await axios.delete(`http://localhost:5000/api/notifications/${id}`, {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/notifications/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(prev => prev.filter(n => n.id !== id));
@@ -166,7 +166,7 @@ export default function Notifications() {
     if (!n.is_read) {
       try {
         const token = await getToken();
-        await axios.put(`http://localhost:5000/api/notifications/read/${n.id}`, {}, { headers: { Authorization: `Bearer ${token}` }});
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/notifications/read/${n.id}`, {}, { headers: { Authorization: `Bearer ${token}` }});
       } catch (e) {}
     }
     navigate(link);

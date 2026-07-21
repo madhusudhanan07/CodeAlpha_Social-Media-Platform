@@ -60,7 +60,7 @@ export default function Chat() {
   // Connect Socket
   useEffect(() => {
     if (!user) return;
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io('${import.meta.env.VITE_API_URL}', {
       query: { userId: user.uid }
     });
     setSocket(newSocket);
@@ -77,8 +77,8 @@ export default function Chat() {
       if (!token) return;
       
       const endpoint = q 
-        ? `http://localhost:5000/api/messages/search?q=${q}`
-        : `http://localhost:5000/api/messages/conversations`;
+        ? `${import.meta.env.VITE_API_URL}/api/messages/search?q=${q}`
+        : `${import.meta.env.VITE_API_URL}/api/messages/conversations`;
         
       const res = await axios.get(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
@@ -86,7 +86,7 @@ export default function Chat() {
       
       const convs = res.data.conversations.map((c: any) => ({
         ...c,
-        friendAvatar: c.friendAvatar ? (c.friendAvatar.startsWith('http') ? c.friendAvatar : `http://localhost:5000${c.friendAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.friendUsername)}`
+        friendAvatar: c.friendAvatar ? (c.friendAvatar.startsWith('http') ? c.friendAvatar : `${import.meta.env.VITE_API_URL}${c.friendAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.friendUsername)}`
       }));
       
       setConversations(convs);
@@ -109,14 +109,14 @@ export default function Chat() {
   const fetchMessages = useCallback(async (convId: number) => {
     try {
       const token = await getToken();
-      const res = await axios.get(`http://localhost:5000/api/messages/${convId}`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/messages/${convId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMessages(res.data.messages);
       scrollToBottom();
       
       // Mark as read
-      await axios.put(`http://localhost:5000/api/messages/read/${convId}`, {}, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/messages/read/${convId}`, {}, {
          headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -162,7 +162,7 @@ export default function Chat() {
         
         // Refresh API to trigger DB update of read status
         getToken().then(t => 
-           axios.put(`http://localhost:5000/api/messages/read/${msg.conversationId}`, {}, { headers: { Authorization: `Bearer ${t}` }})
+           axios.put(`${import.meta.env.VITE_API_URL}/api/messages/read/${msg.conversationId}`, {}, { headers: { Authorization: `Bearer ${t}` }})
         );
       } else {
         // We aren't in this room, increase unread count
@@ -247,7 +247,7 @@ export default function Chat() {
       const formData = new FormData();
       formData.append('image', file);
       
-      const uploadRes = await axios.post('http://localhost:5000/api/upload', formData, {
+      const uploadRes = await axios.post('${import.meta.env.VITE_API_URL}/api/upload', formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -257,7 +257,7 @@ export default function Chat() {
       const imageUrl = uploadRes.data.imageUrl;
 
       // Send message with image
-      const res = await axios.post('http://localhost:5000/api/messages/send', {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/messages/send', {
         receiverId: activeConv.friendId,
         message: '',
         image: imageUrl
@@ -282,7 +282,7 @@ export default function Chat() {
     
     const token = await getToken();
     try {
-      const res = await axios.post('http://localhost:5000/api/messages/send', {
+      const res = await axios.post('${import.meta.env.VITE_API_URL}/api/messages/send', {
         receiverId: activeConv.friendId,
         message: inputText,
         image: null
@@ -312,7 +312,7 @@ export default function Chat() {
     if (!window.confirm('Delete this message for everyone?')) return;
     try {
       const token = await getToken();
-      await axios.delete(`http://localhost:5000/api/messages/${msgId}`, {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/messages/${msgId}`, {
          headers: { Authorization: `Bearer ${token}` }
       });
       setMessages(prev => prev.filter(m => m.id !== msgId));

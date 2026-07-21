@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { auth } from '../config/firebase';
 
-const API_URL = 'http://localhost:5000/api/posts';
+const API_URL = '${import.meta.env.VITE_API_URL}/api/posts';
 
 export const getAuthToken = async () => {
   if (auth.currentUser) {
@@ -46,7 +46,7 @@ export const deletePost = async (id: number) => {
   return true;
 };
 
-const LIKES_URL = 'http://localhost:5000/api/likes';
+const LIKES_URL = '${import.meta.env.VITE_API_URL}/api/likes';
 
 export const toggleLike = async (postId: number) => {
   const token = await getAuthToken();
@@ -55,7 +55,7 @@ export const toggleLike = async (postId: number) => {
   return response.data.liked;
 };
 
-const COMMENTS_URL = 'http://localhost:5000/api/comments';
+const COMMENTS_URL = '${import.meta.env.VITE_API_URL}/api/comments';
 
 export const fetchComments = async (postId: number) => {
   const response = await axios.get(`${COMMENTS_URL}/${postId}`);

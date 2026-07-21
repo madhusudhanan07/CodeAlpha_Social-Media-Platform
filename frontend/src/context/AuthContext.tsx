@@ -25,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (currentUser) {
         try {
           const token = await currentUser.getIdToken();
-          const res = await axios.get('http://localhost:5000/api/saved/ids', {
+          const res = await axios.get('${import.meta.env.VITE_API_URL}/api/saved/ids', {
             headers: { Authorization: `Bearer ${token}` }
           });
           setSavedPostIds(new Set(res.data.savedIds));
@@ -56,11 +56,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const token = await user.getIdToken();
     try {
       if (isSaved) {
-        await axios.delete(`http://localhost:5000/api/saved/${postId}`, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.delete(`${import.meta.env.VITE_API_URL}/api/saved/${postId}`, { headers: { Authorization: `Bearer ${token}` } });
         setSavedPostIds(prev => { const n = new Set(prev); n.delete(postId); return n; });
         return false;
       } else {
-        await axios.post(`http://localhost:5000/api/saved/${postId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/saved/${postId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
         setSavedPostIds(prev => { const n = new Set(prev); n.add(postId); return n; });
         return true;
       }
