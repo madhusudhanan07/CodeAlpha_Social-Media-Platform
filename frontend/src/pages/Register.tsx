@@ -56,7 +56,7 @@ export default function Register() {
       });
 
       // Save user details to backend (MySQL)
-      await axios.post("${import.meta.env.VITE_API_URL}/api/auth/register", {
+      await axios.post("http://localhost:5000/api/auth/register", {
         firebase_uid: userCredential.user.uid,
         email: userCredential.user.email,
         full_name: fullName,

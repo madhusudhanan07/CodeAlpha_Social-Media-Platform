@@ -18,7 +18,7 @@ export default function EditProfile() {
       if (!user) return;
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/profile/${user.uid}`, {
+        const res = await axios.get(`http://localhost:5000/api/profile/${user.uid}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setProfile(res.data.profile);

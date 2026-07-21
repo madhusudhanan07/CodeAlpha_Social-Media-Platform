@@ -18,10 +18,10 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
     website: initialData.website || ''
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(initialData.profile_picture ? `${import.meta.env.VITE_API_URL}${initialData.profile_picture}` : null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData.profile_picture ? `http://localhost:5000${initialData.profile_picture}` : null);
   
   const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(initialData.cover_photo ? `${import.meta.env.VITE_API_URL}${initialData.cover_photo}` : null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(initialData.cover_photo ? `http://localhost:5000${initialData.cover_photo}` : null);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,7 +51,7 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
         const formDataPayload = new FormData();
         formDataPayload.append('profile_picture', imageFile);
 
-        await axios.post('${import.meta.env.VITE_API_URL}/api/profile/upload', formDataPayload, {
+        await axios.post('http://localhost:5000/api/profile/upload', formDataPayload, {
           headers: {
             ...headers,
             'Content-Type': 'multipart/form-data'
@@ -64,7 +64,7 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
         const formDataPayload = new FormData();
         formDataPayload.append('cover_photo', coverFile);
 
-        await axios.post('${import.meta.env.VITE_API_URL}/api/profile/upload-cover', formDataPayload, {
+        await axios.post('http://localhost:5000/api/profile/upload-cover', formDataPayload, {
           headers: {
             ...headers,
             'Content-Type': 'multipart/form-data'
@@ -73,7 +73,7 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
       }
 
       // 2. Update text data
-      await axios.put('${import.meta.env.VITE_API_URL}/api/profile/update', formData, { headers });
+      await axios.put('http://localhost:5000/api/profile/update', formData, { headers });
 
       onSuccess();
     } catch (err: any) {

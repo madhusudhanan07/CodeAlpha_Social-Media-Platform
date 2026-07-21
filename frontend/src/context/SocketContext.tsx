@@ -16,7 +16,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (user) {
-      const newSocket = io('${import.meta.env.VITE_API_URL}', {
+      const newSocket = io('http://localhost:5000', {
         query: { userId: user.uid }
       });
 

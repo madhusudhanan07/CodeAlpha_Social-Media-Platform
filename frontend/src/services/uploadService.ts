@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getAuthToken } from './postService';
 
-const API_URL = '${import.meta.env.VITE_API_URL}/api/upload';
+const API_URL = 'http://localhost:5000/api/upload';
 
 export const uploadMultipleImages = async (files: File[]) => {
   const token = await getAuthToken();
