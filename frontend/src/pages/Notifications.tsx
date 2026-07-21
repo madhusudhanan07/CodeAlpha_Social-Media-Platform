@@ -236,7 +236,20 @@ export default function Notifications() {
                   <span className={styles.time}>{formatTime(n.created_at)}</span>
                 </div>
 
-                <div className={styles.cardActions}>
+                <div className={styles.cardActions} onClick={e => e.stopPropagation()}>
+                  {(n.type === 'FRIEND_REQUEST' || n.type === 'FOLLOW' || n.type === 'FRIEND_ACCEPTED') && (
+                    <button 
+                      className={styles.iconBtn} 
+                      title="Message" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (!n.is_read) handleMarkRead(e, n.id);
+                        navigate(`/messages?userId=${n.sender_id}`);
+                      }}
+                    >
+                      <MessageSquare size={16} />
+                    </button>
+                  )}
                   {!n.is_read && (
                     <button className={styles.iconBtn} title="Mark as read" onClick={(e) => handleMarkRead(e, n.id)}>
                       <Check size={16} />

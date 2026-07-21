@@ -163,6 +163,9 @@ export default function Friends() {
             <button className={styles.btnSecondary} onClick={() => rejectRequest(u.requestId!)}>
               <X size={16} /> Reject
             </button>
+            <button className={styles.btnPrimary} style={{ background: 'var(--primary-color)', marginLeft: '0.5rem' }} onClick={() => navigate(`/messages?userId=${u.id}`)}>
+              <MessageSquare size={16} /> Message
+            </button>
           </>
         )}
         

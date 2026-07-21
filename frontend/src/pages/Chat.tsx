@@ -89,13 +89,38 @@ export default function Chat() {
         friendAvatar: c.friendAvatar ? (c.friendAvatar.startsWith('http') ? c.friendAvatar : `http://localhost:5000${c.friendAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.friendUsername)}`
       }));
       
-      setConversations(convs);
+      let modifiedConvs = [...convs];
 
       // Map query params to open chat if incoming from other pages
-      if (queryUserId && !activeConv && convs.length > 0) {
-        const matching = convs.find((c: Conversation) => c.friendId === queryUserId);
+      if (queryUserId && !activeConv) {
+        let matching = modifiedConvs.find((c: Conversation) => c.friendId === queryUserId);
+        
+        if (!matching) {
+          // Construct temporary conversation for new chat
+          try {
+            const profileRes = await axios.get(`http://localhost:5000/api/profile/${queryUserId}`, { 
+              headers: { Authorization: `Bearer ${token}` } 
+            });
+            const p = profileRes.data.profile;
+            matching = {
+              conversationId: -1, // temporary ID
+              friendId: queryUserId,
+              friendUsername: p.username,
+              friendName: p.full_name || p.username,
+              friendAvatar: p.profile_picture ? (p.profile_picture.startsWith('http') ? p.profile_picture : `http://localhost:5000${p.profile_picture}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
+              unreadCount: 0,
+              isOnline: false
+            };
+            modifiedConvs = [matching, ...modifiedConvs];
+          } catch(e) {
+            console.error('Failed to fetch new chat profile');
+          }
+        }
+        
         if (matching) setActiveConv(matching);
       }
+      
+      setConversations(modifiedConvs);
     } catch (err) {
       console.error(err);
     }
@@ -107,6 +132,11 @@ export default function Chat() {
 
   // Fetch Messages for active conversation
   const fetchMessages = useCallback(async (convId: number) => {
+    if (convId === -1) {
+      setMessages([]);
+      return;
+    }
+    
     try {
       const token = await getToken();
       const res = await axios.get(`http://localhost:5000/api/messages/${convId}`, {
@@ -267,9 +297,13 @@ export default function Chat() {
       
       setMessages(prev => [...prev, res.data.message]);
       scrollToBottom();
-      setConversations(prev => prev.map(c => c.conversationId === activeConv.conversationId ? 
-        { ...c, lastMessage: 'Sent an image', lastMessageTime: new Date().toISOString() } : c
+      setConversations(prev => prev.map(c => c.friendId === activeConv.friendId ? 
+        { ...c, conversationId: res.data.message.conversationId, lastMessage: 'Sent an image', lastMessageTime: new Date().toISOString() } : c
       ));
+      
+      if (activeConv.conversationId === -1) {
+        setActiveConv(prev => prev ? { ...prev, conversationId: res.data.message.conversationId } : null);
+      }
 
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Could not send image');
@@ -299,9 +333,13 @@ export default function Chat() {
       scrollToBottom();
       
       // Update sidebar conversation dynamically
-      setConversations(prev => prev.map(c => c.conversationId === activeConv.conversationId ? 
-        { ...c, lastMessage: inputText, lastMessageTime: new Date().toISOString() } : c
+      setConversations(prev => prev.map(c => c.friendId === activeConv.friendId ? 
+        { ...c, conversationId: res.data.message.conversationId, lastMessage: inputText, lastMessageTime: new Date().toISOString() } : c
       ));
+
+      if (activeConv.conversationId === -1) {
+        setActiveConv(prev => prev ? { ...prev, conversationId: res.data.message.conversationId } : null);
+      }
 
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Could not send message');

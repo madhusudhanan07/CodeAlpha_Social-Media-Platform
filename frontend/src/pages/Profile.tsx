@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../config/firebase';
 import type { UserProfile } from '../types/Profile';
@@ -153,21 +154,29 @@ export default function Profile() {
               Edit Profile
             </button>
           ) : (
-            <button 
-              onClick={async () => {
-                try {
-                  const token = await auth.currentUser?.getIdToken();
-                  const res = await axios.post(`http://localhost:5000/api/follows/${targetUid}`, {}, { headers: { Authorization: `Bearer ${token}` } });
-                  setIsFollowing(res.data.followed);
-                  setFollowersCounter(prev => res.data.followed ? prev + 1 : Math.max(0, prev - 1));
-                } catch (e) {
-                  console.error('Follow toggle error', e);
-                }
-              }}
-              style={{ padding: '0.75rem 2rem', backgroundColor: isFollowing ? '#fff' : '#0a66c2', color: isFollowing ? '#0a66c2' : '#fff', border: isFollowing ? '1px solid #0a66c2' : 'none', borderRadius: '24px', cursor: 'pointer', fontWeight: '500', fontSize: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-            >
-              {isFollowing ? 'Unfollow' : 'Follow'}
-            </button>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <button 
+                onClick={async () => {
+                  try {
+                    const token = await auth.currentUser?.getIdToken();
+                    const res = await axios.post(`http://localhost:5000/api/follows/${targetUid}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                    setIsFollowing(res.data.followed);
+                    setFollowersCounter(prev => res.data.followed ? prev + 1 : Math.max(0, prev - 1));
+                  } catch (e) {
+                    console.error('Follow toggle error', e);
+                  }
+                }}
+                style={{ padding: '0.75rem 2rem', backgroundColor: isFollowing ? '#fff' : '#0a66c2', color: isFollowing ? '#0a66c2' : '#fff', border: isFollowing ? '1px solid #0a66c2' : 'none', borderRadius: '24px', cursor: 'pointer', fontWeight: '500', fontSize: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+              >
+                {isFollowing ? 'Unfollow' : 'Follow'}
+              </button>
+              <button 
+                onClick={() => navigate(`/messages?userId=${targetUid}`)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 2rem', backgroundColor: '#333', color: '#fff', border: 'none', borderRadius: '24px', cursor: 'pointer', fontWeight: '500', fontSize: '1rem', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+              >
+                <MessageSquare size={18} /> Message
+              </button>
+            </div>
           )}
 
           <div style={{ width: '100%', maxWidth: '600px', marginTop: '2rem' }}>

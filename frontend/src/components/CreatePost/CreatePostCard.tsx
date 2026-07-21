@@ -3,6 +3,7 @@ import { Image as ImageIcon, Smile, Loader2, X } from 'lucide-react';
 import { createPost } from '../../services/postService';
 import { useAuth } from '../../context/AuthContext';
 import { uploadMultipleImages } from '../../services/uploadService';
+import axios from 'axios';
 import styles from './CreatePostCard.module.css';
 import type { PostProps } from '../PostCard/PostCard';
 
@@ -58,6 +59,29 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showPicker]);
+
+  const [dbAvatar, setDbAvatar] = useState<string | null>(null);
+  
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAvatar = async () => {
+      if (!user) return;
+      try {
+        const token = await user.getIdToken();
+        const res = await axios.get(`http://localhost:5000/api/profile/${user.uid}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (isMounted && res.data?.profile?.profile_picture) {
+          const pic = res.data.profile.profile_picture;
+          setDbAvatar(pic.startsWith('http') ? pic : `http://localhost:5000${pic}`);
+        }
+      } catch (err) {
+        // silently ignore error for avatar fetch
+      }
+    };
+    fetchAvatar();
+    return () => { isMounted = false; };
+  }, [user]);
 
   const handleSelectActivity = (act: { emoji: string; label: string }) => {
     setSelectedActivity(act);
@@ -149,7 +173,7 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
 
       <div className={styles.topSection}>
         <img
-          src={user?.photoURL || 'https://i.pravatar.cc/150'}
+          src={dbAvatar || user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'User')}`}
           alt="My Avatar"
           className={styles.avatar}
         />

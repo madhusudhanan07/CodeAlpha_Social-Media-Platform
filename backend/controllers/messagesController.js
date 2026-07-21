@@ -84,14 +84,19 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid data' });
     }
 
-    // Must be friends
+    // Must be friends OR followers/following
     const [friends] = await db.execute(`
       SELECT * FROM friends 
       WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
     `, [senderId, receiverId, receiverId, senderId]);
+    
+    const [follows] = await db.execute(`
+      SELECT * FROM follows 
+      WHERE (follower_id = ? AND following_id = ?) OR (follower_id = ? AND following_id = ?)
+    `, [senderId, receiverId, receiverId, senderId]);
 
-    if (friends.length === 0) {
-      return res.status(403).json({ success: false, message: 'Can only message accepted friends.' });
+    if (friends.length === 0 && follows.length === 0) {
+      return res.status(403).json({ success: false, message: 'Can only message friends or followers.' });
     }
 
     let conversationId = null;
