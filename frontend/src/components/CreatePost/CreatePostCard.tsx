@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { API_URL, BASE_URL } from '../../config/api';
+import { API_URL } from '../../config/api';
 import { Image as ImageIcon, Smile, Loader2, X } from 'lucide-react';
 import { createPost } from '../../services/postService';
 import { useAuth } from '../../context/AuthContext';
 import { uploadMultipleImages } from '../../services/uploadService';
+import { getAvatarUrl, handleAvatarError } from '../../utils/avatar';
 import axios from 'axios';
 import styles from './CreatePostCard.module.css';
 import type { PostProps } from '../PostCard/PostCard';
@@ -74,7 +75,7 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
         });
         if (isMounted && res.data?.profile?.profile_picture) {
           const pic = res.data.profile.profile_picture;
-          setDbAvatar(pic.startsWith('http') ? pic : `${BASE_URL}${pic}`);
+          setDbAvatar(getAvatarUrl(pic, res.data.profile.full_name || user.displayName || 'User'));
         }
       } catch (err) {
         // silently ignore error for avatar fetch
@@ -119,7 +120,7 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
       const formattedPost: PostProps = {
         id: newPost.id,
         user_id: newPost.user_id,
-        userAvatar: newPost.userAvatar ? (newPost.userAvatar.startsWith('http') ? newPost.userAvatar : `${BASE_URL}${newPost.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(newPost.displayName || newPost.username || 'User')}`,
+        userAvatar: getAvatarUrl(newPost.userAvatar, newPost.displayName || newPost.username || 'User'),
         username: newPost.displayName || newPost.username || 'User',
         time: new Date(newPost.created_at).toLocaleString(),
         content: newPost.content,
@@ -166,6 +167,8 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  const currentAvatar = dbAvatar || getAvatarUrl(user?.photoURL, user?.displayName || 'User');
+
   return (
     <div className={styles.createPostCard}>
       {error && (
@@ -174,8 +177,9 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
 
       <div className={styles.topSection}>
         <img
-          src={dbAvatar || user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'User')}`}
+          src={currentAvatar}
           alt="My Avatar"
+          onError={(e) => handleAvatarError(e, user?.displayName || 'User')}
           className={styles.avatar}
         />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -310,6 +314,3 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
     </div>
   );
 }
-
-
-

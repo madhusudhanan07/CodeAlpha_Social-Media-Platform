@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from 'react-router-dom';
 import { API_URL, BASE_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +7,7 @@ import { auth } from '../config/firebase';
 import { Bell, Search, MessageSquare, Moon, Sun, Users, Heart, MessageCircle, UserPlus, AtSign, Info } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { useTheme } from '../context/ThemeContext';
+import { getAvatarUrl, handleAvatarError } from '../utils/avatar';
 
 export default function Navbar() { 
   const { user, logout } = useAuth();
@@ -25,7 +25,7 @@ export default function Navbar() {
         });
         if (isMounted && res.data?.profile?.profile_picture) {
           const pic = res.data.profile.profile_picture;
-          setDbAvatar(pic.startsWith('http') ? pic : `${BASE_URL}${pic}`);
+          setDbAvatar(getAvatarUrl(pic, res.data.profile.full_name || user.displayName || 'User'));
         }
       } catch (err) {
         // silently ignore error for avatar fetch
@@ -150,6 +150,8 @@ export default function Navbar() {
   };
 
   const navigate = useNavigate();
+  const userName = user?.displayName || user?.email?.split('@')[0] || 'User';
+  const finalAvatar = dbAvatar || getAvatarUrl(user?.photoURL, userName);
 
   return (
     <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--nav-bg)' }}>
@@ -172,7 +174,12 @@ export default function Navbar() {
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ccc', borderRadius: '4px', marginTop: '0.5rem', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                 {searchResults.map(u => (
                   <div key={u.id} onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); navigate(`/profile/${u.id}`); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
-                    <img src={u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `${BASE_URL}${u.avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`} alt={u.username} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                    <img 
+                      src={getAvatarUrl(u.avatar, u.username)} 
+                      alt={u.username} 
+                      onError={(e) => handleAvatarError(e, u.username)}
+                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
+                    />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.displayName}</span>
                       <span style={{ fontSize: '0.8rem', color: '#666' }}>@{u.username}</span>
@@ -214,7 +221,12 @@ export default function Navbar() {
                       notifications.slice(0, 10).map(n => (
                         <div key={n.id} onClick={() => { setShowNotifications(false); navigate('/notifications'); }} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)', background: n.is_read ? 'transparent' : 'var(--hover-bg, rgba(0,132,255,0.05))', cursor: 'pointer', transition: 'background 0.2s' }}>
                           <div style={{ position: 'relative' }}>
-                            <img src={n.sender_avatar ? (n.sender_avatar.startsWith('http') ? n.sender_avatar : `${BASE_URL}${n.sender_avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(n.sender_name)}`} alt={n.sender_username} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                            <img 
+                              src={getAvatarUrl(n.sender_avatar, n.sender_name)} 
+                              alt={n.sender_username} 
+                              onError={(e) => handleAvatarError(e, n.sender_name)}
+                              style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} 
+                            />
                             <div style={{ position: 'absolute', bottom: -2, right: -2, width: '18px', height: '18px', background: 'var(--card-bg)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {getNotificationIcon(n.type)}
                             </div>
@@ -255,12 +267,13 @@ export default function Navbar() {
             </button>
 
             <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: 'inherit' }}>
-              {dbAvatar || user.photoURL ? (
-                <img src={dbAvatar || user.photoURL || ''} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
-              ) : (
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
-              )}
-              <span style={{ fontWeight: 500 }}>{user.displayName || user.email?.split('@')[0]}</span>
+              <img 
+                src={finalAvatar} 
+                alt="Avatar" 
+                onError={(e) => handleAvatarError(e, userName)}
+                style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
+              />
+              <span style={{ fontWeight: 500 }}>{userName}</span>
             </Link>
             <button onClick={logout} style={{ padding: '0.4rem 1rem', background: '#eee', border: 'none', borderRadius: '20px', cursor: 'pointer', fontWeight: 500 }}>Logout</button>
           </div>
@@ -274,6 +287,3 @@ export default function Navbar() {
     </nav>
   ); 
 }
-
-
-

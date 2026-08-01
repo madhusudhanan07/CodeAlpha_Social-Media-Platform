@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { API_URL, BASE_URL } from '../../config/api';
+import { API_URL } from '../../config/api';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { auth } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
+import { getAvatarUrl, handleAvatarError } from '../../utils/avatar';
 import styles from './RightSidebar.module.css';
 
 const trendingTopics = [
@@ -27,7 +28,7 @@ export default function RightSidebar() {
         const res = await axios.get(`${API_URL}/follows/suggestions`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSuggestions(res.data.suggestions);
+        setSuggestions(res.data.suggestions || []);
       } catch (err) {
         console.error(err);
       }
@@ -52,15 +53,21 @@ export default function RightSidebar() {
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Suggested Users</h3>
         {suggestions.length === 0 ? (
-          <p style={{ fontSize: '0.9rem', color: '#666' }}>No suggestions right now.</p>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #666)' }}>No suggestions right now.</p>
         ) : (
           suggestions.map(person => (
             <div key={person.id} className={styles.personRow}>
-              <Link to={`/profile/${person.id}`} style={{ display: 'flex', gap: '10px', textDecoration: 'none', color: 'inherit', alignItems: 'center', flex: 1 }}>
-                <img src={person.avatar ? `${BASE_URL}${person.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(person.username)}`} alt={person.displayName} className={styles.personAvatar} style={{ objectFit: 'cover' }} />
-                <div className={styles.personInfo}>
-                  <span className={styles.personName}>{person.displayName}</span>
-                  <span className={styles.personMutual}>@{person.username}</span>
+              <Link to={`/profile/${person.id}`} style={{ display: 'flex', gap: '10px', textDecoration: 'none', color: 'inherit', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                <img 
+                  src={getAvatarUrl(person.avatar, person.displayName || person.username)} 
+                  alt={person.displayName || person.username} 
+                  onError={(e) => handleAvatarError(e, person.displayName || person.username)}
+                  className={styles.personAvatar} 
+                  style={{ objectFit: 'cover', flexShrink: 0 }} 
+                />
+                <div className={styles.personInfo} style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <span className={styles.personName} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{person.displayName}</span>
+                  <span className={styles.personMutual} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>@{person.username}</span>
                 </div>
               </Link>
               <button className={styles.followBtn} onClick={() => handleFollow(person.id)}>Follow</button>
@@ -83,6 +90,3 @@ export default function RightSidebar() {
     </aside>
   );
 }
-
-
-

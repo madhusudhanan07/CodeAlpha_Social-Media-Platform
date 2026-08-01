@@ -1,10 +1,11 @@
 import { NavLink, Link } from 'react-router-dom';
-import { API_URL, BASE_URL } from '../../config/api';
+import { API_URL } from '../../config/api';
 import { Home, User, Compass, Users, MessageSquare, Bookmark, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { auth } from '../../config/firebase';
+import { getAvatarUrl, handleAvatarError } from '../../utils/avatar';
 import styles from './Sidebar.module.css';
 
 const navLinks = [
@@ -32,10 +33,11 @@ export default function Sidebar() {
         });
         if (isMounted && res.data?.profile) {
           const p = res.data.profile;
+          const displayName = p.full_name || p.username || user.displayName || 'User';
           setProfilePreview({
-            name: p.full_name,
-            username: p.username,
-            avatar: p.profile_picture ? `${BASE_URL}${p.profile_picture}` : user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name)}`
+            name: displayName,
+            username: p.username || 'user',
+            avatar: getAvatarUrl(p.profile_picture || user.photoURL, displayName)
           });
         }
       } catch(err) {
@@ -49,12 +51,17 @@ export default function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       {profilePreview && (
-        <div style={{ padding: '0 1rem 1.5rem 1rem', borderBottom: '1px solid #333' }}>
-          <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none', color: 'inherit' }}>
-            <img src={profilePreview.avatar} alt="Avatar" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: '600', fontSize: '1rem' }}>{profilePreview.name}</span>
-              <span style={{ fontSize: '0.85rem', color: '#888' }}>@{profilePreview.username}</span>
+        <div style={{ padding: '0 1rem 1.5rem 1rem', borderBottom: '1px solid var(--border-color, #333)' }}>
+          <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit', minWidth: 0 }}>
+            <img 
+              src={profilePreview.avatar} 
+              alt="Avatar" 
+              onError={(e) => handleAvatarError(e, profilePreview.name)}
+              style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} 
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+              <span style={{ fontWeight: '600', fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profilePreview.name}</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary, #888)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>@{profilePreview.username}</span>
             </div>
           </Link>
         </div>
@@ -76,6 +83,3 @@ export default function Sidebar() {
     </aside>
   );
 }
-
-
-

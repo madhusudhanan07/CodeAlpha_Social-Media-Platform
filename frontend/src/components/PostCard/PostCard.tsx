@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { ThumbsUp, MessageSquare, Share2, MoreVertical, Trash2, Edit2, Check, X, Bookmark } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toggleLike, deletePost, updatePost, fetchComments, createComment } from '../../services/postService';
+import { getAvatarUrl, handleAvatarError } from '../../utils/avatar';
 import styles from './PostCard.module.css';
 
 export interface PostProps {
@@ -119,7 +120,6 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
   const handleSaveToggle = async () => {
     try {
       if (overrideSavedRemoval && isSaved) {
-        // If we are on Saved page, we optimistically remove it visually immediately
         overrideSavedRemoval(post.id);
         await toggleSavedPost(post.id);
         toast.success('Removed from saved');
@@ -137,10 +137,44 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
     }
   };
 
+  const handleShare = async () => {
+    const postUrl = `${window.location.origin}/#post-${post.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Post by @${post.username}`,
+          text: post.content ? (post.content.length > 80 ? post.content.substring(0, 80) + '...' : post.content) : 'Check out this post on CodeAlpha!',
+          url: postUrl
+        });
+        toast.success('Shared successfully!');
+        return;
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Share error:', err);
+        } else {
+          return;
+        }
+      }
+    }
+    
+    // Clipboard fallback
+    try {
+      await navigator.clipboard.writeText(postUrl);
+      toast.success('Post link copied to clipboard! 📋');
+    } catch {
+      toast.error('Could not copy link to clipboard');
+    }
+  };
+
   return (
-    <div className={styles.postCard}>
+    <div className={styles.postCard} id={`post-${post.id}`}>
       <div className={styles.header}>
-        <img src={post.userAvatar} alt={post.username} className={styles.avatar} />
+        <img 
+          src={getAvatarUrl(post.userAvatar, post.username)} 
+          alt={post.username} 
+          onError={(e) => handleAvatarError(e, post.username)}
+          className={styles.avatar} 
+        />
         <div className={styles.userInfo}>
           <span className={styles.username}>{post.username}</span>
           <span className={styles.time}>{post.time}</span>
@@ -263,7 +297,7 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
           <Bookmark className={styles.icon} fill={isSaved ? '#0a66c2' : 'none'} color={isSaved ? '#0a66c2' : 'currentColor'} />
           {isSaved ? 'Saved' : 'Save'}
         </button>
-        <button className={styles.actionBtn}>
+        <button className={styles.actionBtn} onClick={handleShare}>
           <Share2 className={styles.icon} />
           Share
         </button>
@@ -279,10 +313,15 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
              {comments.map(c => (
                <div key={c.id} style={{ display: 'flex', gap: '10px' }}>
-                 <img src={c.userAvatar ? (c.userAvatar.startsWith('http') ? c.userAvatar : `${BASE_URL}${c.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.displayName || 'User')}`} alt={c.displayName} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
-                 <div style={{ background: '#f2f2f2', padding: '10px 15px', borderRadius: '12px', flex: 1 }}>
+                 <img 
+                   src={getAvatarUrl(c.userAvatar, c.displayName)} 
+                   alt={c.displayName} 
+                   onError={(e) => handleAvatarError(e, c.displayName)}
+                   style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
+                 />
+                 <div style={{ background: 'var(--hover-bg, #f2f2f2)', padding: '10px 15px', borderRadius: '12px', flex: 1 }}>
                    <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{c.displayName}</div>
-                   <div style={{ fontSize: '14px', color: '#333' }}>{c.content}</div>
+                   <div style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{c.content}</div>
                  </div>
                </div>
              ))}
@@ -294,6 +333,3 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
 });
 
 export default PostCard;
-
-
-

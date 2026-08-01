@@ -1,18 +1,20 @@
 import type { UserProfile } from '../types/Profile';
 import { BASE_URL } from '../config/api';
+import { getAvatarUrl, handleAvatarError } from '../utils/avatar';
 
 interface ProfileCardProps {
   profile: UserProfile;
 }
 
 export default function ProfileCard({ profile }: ProfileCardProps) {
-  const defaultAvatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile.full_name) + '&background=random';
-  const profilePictureUrl = profile.profile_picture ? `${BASE_URL}${profile.profile_picture}` : defaultAvatar;
-  const coverPhotoUrl = profile.cover_photo ? `${BASE_URL}${profile.cover_photo}` : 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=1000&auto=format&fit=crop'; // Premium fallback cover
+  const profilePictureUrl = getAvatarUrl(profile.profile_picture, profile.full_name || profile.username);
+  const coverPhotoUrl = profile.cover_photo 
+    ? (profile.cover_photo.startsWith('http') ? profile.cover_photo : `${BASE_URL}${profile.cover_photo}`)
+    : 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=1000&auto=format&fit=crop';
 
   return (
     <div style={{
-      backgroundColor: '#fff',
+      backgroundColor: 'var(--card-bg, #fff)',
       padding: '0',
       borderRadius: '16px',
       boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
@@ -45,21 +47,22 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
         <img 
           src={profilePictureUrl} 
           alt={profile.full_name} 
+          onError={(e) => handleAvatarError(e, profile.full_name || profile.username)}
           style={{
             width: '140px',
             height: '140px',
             borderRadius: '50%',
             objectFit: 'cover',
-            border: '6px solid #fff',
-            backgroundColor: '#fff',
+            border: '6px solid var(--card-bg, #fff)',
+            backgroundColor: 'var(--card-bg, #fff)',
             marginBottom: '1rem',
             boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
           }}
         />
-        <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '1.8rem', color: '#1a1a1a', fontWeight: 'bold' }}>{profile.full_name}</h2>
-        <p style={{ margin: '0 0 1rem 0', color: '#666', fontWeight: '500', fontSize: '1rem' }}>@{profile.username}</p>
+        <h2 style={{ margin: '0 0 0.5rem 0', fontSize: '1.8rem', color: 'var(--text-primary, #1a1a1a)', fontWeight: 'bold' }}>{profile.full_name}</h2>
+        <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary, #666)', fontWeight: '500', fontSize: '1rem' }}>@{profile.username}</p>
         
-        <p style={{ margin: '0 0 1.5rem 0', color: '#4a4a4a', lineHeight: '1.6', maxWidth: '500px', textAlign: 'center', fontSize: '1.05rem' }}>
+        <p style={{ margin: '0 0 1.5rem 0', color: 'var(--text-primary, #4a4a4a)', lineHeight: '1.6', maxWidth: '500px', textAlign: 'center', fontSize: '1.05rem' }}>
           {profile.bio || 'No bio yet.'}
         </p>
 
@@ -68,30 +71,30 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
           gap: '2.5rem',
           justifyContent: 'center',
           padding: '1.5rem 0',
-          borderTop: '1px solid #f0f2f5',
-          borderBottom: '1px solid #f0f2f5',
+          borderTop: '1px solid var(--border-color, #f0f2f5)',
+          borderBottom: '1px solid var(--border-color, #f0f2f5)',
           width: '100%',
           marginBottom: '1.5rem'
         }}>
           <div style={{ textAlign: 'center' }}>
-            <h4 style={{ margin: 0, fontSize: '1.3rem', color: '#1a1a1a' }}>{profile.total_posts}</h4>
-            <span style={{ fontSize: '0.9rem', color: '#65676B', fontWeight: '500' }}>Posts</span>
+            <h4 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-primary, #1a1a1a)' }}>{profile.total_posts}</h4>
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #65676B)', fontWeight: '500' }}>Posts</span>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <h4 style={{ margin: 0, fontSize: '1.3rem', color: '#1a1a1a' }}>{profile.followers}</h4>
-            <span style={{ fontSize: '0.9rem', color: '#65676B', fontWeight: '500' }}>Followers</span>
+            <h4 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-primary, #1a1a1a)' }}>{profile.followers}</h4>
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #65676B)', fontWeight: '500' }}>Followers</span>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <h4 style={{ margin: 0, fontSize: '1.3rem', color: '#1a1a1a' }}>{profile.following}</h4>
-            <span style={{ fontSize: '0.9rem', color: '#65676B', fontWeight: '500' }}>Following</span>
+            <h4 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-primary, #1a1a1a)' }}>{profile.following}</h4>
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #65676B)', fontWeight: '500' }}>Following</span>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <h4 style={{ margin: 0, fontSize: '1.3rem', color: '#1a1a1a' }}>{profile.likes_received}</h4>
-            <span style={{ fontSize: '0.9rem', color: '#65676B', fontWeight: '500' }}>Likes</span>
+            <h4 style={{ margin: 0, fontSize: '1.3rem', color: 'var(--text-primary, #1a1a1a)' }}>{profile.likes_received}</h4>
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary, #65676B)', fontWeight: '500' }}>Likes</span>
           </div>
         </div>
 
-        <div style={{ width: '100%', textAlign: 'center', fontSize: '0.95rem', color: '#4a4a4a', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem' }}>
+        <div style={{ width: '100%', textAlign: 'center', fontSize: '0.95rem', color: 'var(--text-secondary, #4a4a4a)', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem' }}>
           {profile.location && <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>📍 {profile.location}</div>}
           {profile.website && <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>🔗 <a href={profile.website} target="_blank" rel="noopener noreferrer" style={{ color: '#0a66c2', textDecoration: 'none', fontWeight: 500 }}>{profile.website}</a></div>}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>✉️ {profile.email}</div>
@@ -101,6 +104,3 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
     </div>
   );
 }
-
-
-
