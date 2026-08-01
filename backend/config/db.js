@@ -1,11 +1,9 @@
 const mysql = require('mysql2');
 require('dotenv').config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-});
+// Railway URL or DB_URL to connect directly
+const connectionUrl = process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_URL;
+
+const pool = mysql.createPool(connectionUrl + '?ssl={"rejectUnauthorized":false}');
 
 module.exports = pool.promise();
