@@ -9,7 +9,7 @@ import { io } from 'socket.io-client';
 import { useTheme } from '../context/ThemeContext';
 import { getAvatarUrl, handleAvatarError } from '../utils/avatar';
 
-export default function Navbar() { 
+export default function Navbar() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [dbAvatar, setDbAvatar] = useState<string | null>(null);
@@ -47,9 +47,9 @@ export default function Navbar() {
       setShowSearchDropdown(false);
       return;
     }
-    
+
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    
+
     searchTimeout.current = setTimeout(async () => {
       try {
         const token = await auth.currentUser?.getIdToken();
@@ -85,7 +85,7 @@ export default function Navbar() {
         console.error(err);
       }
     };
-    
+
     fetchNotifications();
     const newSocket = io(BASE_URL, {
       query: { userId: user.uid }
@@ -156,15 +156,15 @@ export default function Navbar() {
   return (
     <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--nav-bg)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-        <Link to="/" style={{ textDecoration: 'none', color: '#0a66c2', fontWeight: 700, fontSize: '1.25rem' }}>Social App</Link>
-        
+        <Link to="/" style={{ textDecoration: 'none', color: '#0a66c2', fontWeight: 700, fontSize: '1.25rem' }}>Social Media Platform</Link>
+
         {user && (
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: '#eef3f8', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
               <Search size={18} color="#666" />
-              <input 
-                type="text" 
-                placeholder="Search users..." 
+              <input
+                type="text"
+                placeholder="Search users..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 style={{ border: 'none', background: 'transparent', outline: 'none', padding: '0.25rem 0.5rem', width: '200px' }}
@@ -174,11 +174,11 @@ export default function Navbar() {
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #ccc', borderRadius: '4px', marginTop: '0.5rem', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                 {searchResults.map(u => (
                   <div key={u.id} onClick={() => { setShowSearchDropdown(false); setSearchQuery(''); navigate(`/profile/${u.id}`); }} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
-                    <img 
-                      src={getAvatarUrl(u.avatar, u.username)} 
-                      alt={u.username} 
+                    <img
+                      src={getAvatarUrl(u.avatar, u.username)}
+                      alt={u.username}
                       onError={(e) => handleAvatarError(e, u.username)}
-                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
+                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
                     />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.displayName}</span>
@@ -196,7 +196,7 @@ export default function Navbar() {
         {user ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             <div style={{ position: 'relative' }}>
-              <button 
+              <button
                 onClick={() => { setShowNotifications(!showNotifications); handleMarkAsRead(); }}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center' }}
               >
@@ -207,7 +207,7 @@ export default function Navbar() {
                   </span>
                 )}
               </button>
-              
+
               {showNotifications && (
                 <div style={{ position: 'absolute', top: '100%', right: 0, width: '350px', background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', marginTop: '1rem', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', maxHeight: '420px', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -221,11 +221,11 @@ export default function Navbar() {
                       notifications.slice(0, 10).map(n => (
                         <div key={n.id} onClick={() => { setShowNotifications(false); navigate('/notifications'); }} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)', background: n.is_read ? 'transparent' : 'var(--hover-bg, rgba(0,132,255,0.05))', cursor: 'pointer', transition: 'background 0.2s' }}>
                           <div style={{ position: 'relative' }}>
-                            <img 
-                              src={getAvatarUrl(n.sender_avatar, n.sender_name)} 
-                              alt={n.sender_username} 
+                            <img
+                              src={getAvatarUrl(n.sender_avatar, n.sender_name)}
+                              alt={n.sender_username}
                               onError={(e) => handleAvatarError(e, n.sender_name)}
-                              style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} 
+                              style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
                             />
                             <div style={{ position: 'absolute', bottom: -2, right: -2, width: '18px', height: '18px', background: 'var(--card-bg)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {getNotificationIcon(n.type)}
@@ -245,7 +245,7 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-            
+
             <div style={{ position: 'relative' }}>
               <Link to="/chat" style={{ background: 'transparent', border: 'none', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', color: 'inherit' }} title="Chat">
                 <MessageSquare size={24} color="var(--text-primary)" />
@@ -258,8 +258,8 @@ export default function Navbar() {
               </Link>
             </div>
 
-            <button 
-              onClick={toggleTheme} 
+            <button
+              onClick={toggleTheme}
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-primary)' }}
               title="Toggle Theme"
             >
@@ -267,11 +267,11 @@ export default function Navbar() {
             </button>
 
             <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', color: 'inherit' }}>
-              <img 
-                src={finalAvatar} 
-                alt="Avatar" 
+              <img
+                src={finalAvatar}
+                alt="Avatar"
                 onError={(e) => handleAvatarError(e, userName)}
-                style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
+                style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
               />
               <span style={{ fontWeight: 500 }}>{userName}</span>
             </Link>
@@ -285,5 +285,5 @@ export default function Navbar() {
         )}
       </div>
     </nav>
-  ); 
+  );
 }
