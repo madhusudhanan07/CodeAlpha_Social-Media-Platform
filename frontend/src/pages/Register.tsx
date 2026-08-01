@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { API_URL } from '../config/api';
-import { useNavigate, Link } from 'react-router-dom';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import axios from 'axios';
+import { API_URL } from '../config/api';
 import { User, Mail, Lock, Sun, Moon } from 'lucide-react';
-import styles from './Auth.module.css';
 import { useTheme } from '../context/ThemeContext';
+import styles from './Auth.module.css';
 
 export default function Register() {
   const [fullName, setFullName] = useState('');
@@ -17,65 +17,50 @@ export default function Register() {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
-  const validateEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
     if (!fullName || !email || !password || !confirmPassword) {
-      setError('Please fill in all fields');
-      return;
+      return setError('Please fill in all fields');
     }
-
-    if (!validateEmail(email)) {
-      setError('Please enter a valid email');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
+      return setError('Passwords do not match');
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      // 1. Firebase Auth Registration
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-      await updateProfile(userCredential.user, {
-        displayName: fullName,
-      });
+      // Generate username from email
+      const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
 
-      // Save user details to backend (MySQL)
+      // 2. MySQL Backend DB Sync
       await axios.post(`${API_URL}/auth/register`, {
-        firebase_uid: userCredential.user.uid,
-        email: userCredential.user.email,
+        firebase_uid: user.uid,
+        email: user.email,
         full_name: fullName,
-        username: email.split("@")[0]
+        username: username,
       });
 
-      navigate("/");
+      navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Failed to register');
+      console.error(err);
+      if (err.code === 'auth/email-already-in-use') {
+        setError('This email is already registered.');
+      } else if (err.code === 'auth/weak-password') {
+        setError('Password should be at least 6 characters.');
+      } else {
+        setError(err.response?.data?.message || err.message || 'Failed to create an account');
+      }
     }
   };
 
   return (
     <div className={styles.container}>
-      <button
-        onClick={toggleTheme}
-        style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#ff00c8', zIndex: 10 }}
-        title="Toggle Theme"
+      <button 
+        onClick={toggleTheme} 
+        className={styles.themeToggle}
+        aria-label="Toggle theme"
       >
         {theme === 'light' ? <Moon size={28} /> : <Sun size={28} />}
       </button>
@@ -93,6 +78,7 @@ export default function Register() {
               placeholder="Full Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+              autoComplete="name"
               style={fullName ? { borderBottomColor: '#ff00c8' } : {}}
             />
           </div>
@@ -104,6 +90,7 @@ export default function Register() {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               style={email ? { borderBottomColor: '#ff00c8' } : {}}
             />
           </div>
@@ -115,6 +102,7 @@ export default function Register() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
               style={password ? { borderBottomColor: '#ff00c8' } : {}}
             />
           </div>
@@ -126,6 +114,7 @@ export default function Register() {
               placeholder="Confirm Password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
               style={confirmPassword ? { borderBottomColor: '#ff00c8' } : {}}
             />
           </div>
@@ -150,5 +139,3 @@ export default function Register() {
     </div>
   );
 }
-
-

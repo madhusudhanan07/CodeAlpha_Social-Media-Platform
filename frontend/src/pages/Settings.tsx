@@ -790,6 +790,7 @@ export default function Settings() {
                 onChange={e => setDeletePassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleDeleteAccount()}
                 placeholder="Enter your password"
+                autoComplete="current-password"
                 autoFocus
               />
             </div>

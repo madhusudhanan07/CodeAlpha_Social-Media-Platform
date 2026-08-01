@@ -63,6 +63,10 @@ async function startServer() {
     console.log('✅ MySQL Connected Successfully');
     connection.release();
 
+    // Auto-initialize DB tables
+    const initDbTables = require('./utils/initDbTables');
+    await initDbTables();
+
     const http = require('http');
     const { initSocket } = require('./config/socket');
     
@@ -73,7 +77,6 @@ async function startServer() {
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 http://localhost:${PORT}`);
-      // Restart signal
     });
   } catch (err) {
     console.error('❌ Failed to connect to MySQL');
