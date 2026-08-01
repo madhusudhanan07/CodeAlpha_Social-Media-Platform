@@ -36,3 +36,4 @@ export default function MessageBubble({ content, isOwn, time, status }: BubblePr
     </div>
   );
 }
+

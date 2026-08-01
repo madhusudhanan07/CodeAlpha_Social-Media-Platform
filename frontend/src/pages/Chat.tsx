@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { API_URL, BASE_URL } from '../config/api';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
@@ -60,7 +61,7 @@ export default function Chat() {
   // Connect Socket
   useEffect(() => {
     if (!user) return;
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io(BASE_URL, {
       query: { userId: user.uid }
     });
     setSocket(newSocket);
@@ -77,8 +78,8 @@ export default function Chat() {
       if (!token) return;
       
       const endpoint = q 
-        ? `http://localhost:5000/api/messages/search?q=${q}`
-        : `http://localhost:5000/api/messages/conversations`;
+        ? `${API_URL}/messages/search?q=${q}`
+        : `${API_URL}/messages/conversations`;
         
       const res = await axios.get(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
@@ -86,7 +87,7 @@ export default function Chat() {
       
       const convs = res.data.conversations.map((c: any) => ({
         ...c,
-        friendAvatar: c.friendAvatar ? (c.friendAvatar.startsWith('http') ? c.friendAvatar : `http://localhost:5000${c.friendAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.friendUsername)}`
+        friendAvatar: c.friendAvatar ? (c.friendAvatar.startsWith('http') ? c.friendAvatar : `${BASE_URL}${c.friendAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.friendUsername)}`
       }));
       
       let modifiedConvs = [...convs];
@@ -98,7 +99,7 @@ export default function Chat() {
         if (!matching) {
           // Construct temporary conversation for new chat
           try {
-            const profileRes = await axios.get(`http://localhost:5000/api/profile/${queryUserId}`, { 
+            const profileRes = await axios.get(`${API_URL}/profile/${queryUserId}`, { 
               headers: { Authorization: `Bearer ${token}` } 
             });
             const p = profileRes.data.profile;
@@ -107,7 +108,7 @@ export default function Chat() {
               friendId: queryUserId,
               friendUsername: p.username,
               friendName: p.full_name || p.username,
-              friendAvatar: p.profile_picture ? (p.profile_picture.startsWith('http') ? p.profile_picture : `http://localhost:5000${p.profile_picture}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
+              friendAvatar: p.profile_picture ? (p.profile_picture.startsWith('http') ? p.profile_picture : `${BASE_URL}${p.profile_picture}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
               unreadCount: 0,
               isOnline: false
             };
@@ -139,14 +140,14 @@ export default function Chat() {
     
     try {
       const token = await getToken();
-      const res = await axios.get(`http://localhost:5000/api/messages/${convId}`, {
+      const res = await axios.get(`${API_URL}/messages/${convId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMessages(res.data.messages);
       scrollToBottom();
       
       // Mark as read
-      await axios.put(`http://localhost:5000/api/messages/read/${convId}`, {}, {
+      await axios.put(`${API_URL}/messages/read/${convId}`, {}, {
          headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -192,7 +193,7 @@ export default function Chat() {
         
         // Refresh API to trigger DB update of read status
         getToken().then(t => 
-           axios.put(`http://localhost:5000/api/messages/read/${msg.conversationId}`, {}, { headers: { Authorization: `Bearer ${t}` }})
+           axios.put(`${API_URL}/messages/read/${msg.conversationId}`, {}, { headers: { Authorization: `Bearer ${t}` }})
         );
       } else {
         // We aren't in this room, increase unread count
@@ -277,7 +278,7 @@ export default function Chat() {
       const formData = new FormData();
       formData.append('image', file);
       
-      const uploadRes = await axios.post('http://localhost:5000/api/upload', formData, {
+      const uploadRes = await axios.post(`${API_URL}/upload`, formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -287,7 +288,7 @@ export default function Chat() {
       const imageUrl = uploadRes.data.imageUrl;
 
       // Send message with image
-      const res = await axios.post('http://localhost:5000/api/messages/send', {
+      const res = await axios.post(`${API_URL}/messages/send`, {
         receiverId: activeConv.friendId,
         message: '',
         image: imageUrl
@@ -316,7 +317,7 @@ export default function Chat() {
     
     const token = await getToken();
     try {
-      const res = await axios.post('http://localhost:5000/api/messages/send', {
+      const res = await axios.post(`${API_URL}/messages/send`, {
         receiverId: activeConv.friendId,
         message: inputText,
         image: null
@@ -350,7 +351,7 @@ export default function Chat() {
     if (!window.confirm('Delete this message for everyone?')) return;
     try {
       const token = await getToken();
-      await axios.delete(`http://localhost:5000/api/messages/${msgId}`, {
+      await axios.delete(`${API_URL}/messages/${msgId}`, {
          headers: { Authorization: `Bearer ${token}` }
       });
       setMessages(prev => prev.filter(m => m.id !== msgId));
@@ -529,3 +530,6 @@ export default function Chat() {
     </div>
   );
 }
+
+
+

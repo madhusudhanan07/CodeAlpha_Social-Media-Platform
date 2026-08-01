@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_URL } from '../config/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -56,7 +57,7 @@ export default function Register() {
       });
 
       // Save user details to backend (MySQL)
-      await axios.post("http://localhost:5000/api/auth/register", {
+      await axios.post(`${API_URL}/auth/register`, {
         firebase_uid: userCredential.user.uid,
         email: userCredential.user.email,
         full_name: fullName,
@@ -149,3 +150,5 @@ export default function Register() {
     </div>
   );
 }
+
+

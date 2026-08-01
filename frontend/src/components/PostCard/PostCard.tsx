@@ -1,4 +1,5 @@
 import React, { useState, memo } from 'react';
+import { BASE_URL } from '../../config/api';
 import toast from 'react-hot-toast';
 import { ThumbsUp, MessageSquare, Share2, MoreVertical, Trash2, Edit2, Check, X, Bookmark } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -193,7 +194,7 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
               onClick={() => setActiveImageIndex(index)}
             >
               <img 
-                src={imgUrl.startsWith('http') ? imgUrl : `http://localhost:5000${imgUrl}`}
+                src={imgUrl.startsWith('http') ? imgUrl : `${BASE_URL}${imgUrl}`}
                 alt={`Post content ${index}`} 
                 style={{ width: '100%', height: '100%', objectFit: postImages.length === 1 ? 'contain' : 'cover', maxHeight: postImages.length === 1 ? '500px' : 'none' }}
               />
@@ -227,7 +228,7 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
           )}
 
           <img 
-            src={postImages[activeImageIndex].startsWith('http') ? postImages[activeImageIndex] : `http://localhost:5000${postImages[activeImageIndex]}`}
+            src={postImages[activeImageIndex].startsWith('http') ? postImages[activeImageIndex] : `${BASE_URL}${postImages[activeImageIndex]}`}
             alt="Fullscreen viewer"
             style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }}
             onClick={(e) => e.stopPropagation()}
@@ -278,7 +279,7 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
              {comments.map(c => (
                <div key={c.id} style={{ display: 'flex', gap: '10px' }}>
-                 <img src={c.userAvatar ? (c.userAvatar.startsWith('http') ? c.userAvatar : `http://localhost:5000${c.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.displayName || 'User')}`} alt={c.displayName} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                 <img src={c.userAvatar ? (c.userAvatar.startsWith('http') ? c.userAvatar : `${BASE_URL}${c.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(c.displayName || 'User')}`} alt={c.displayName} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
                  <div style={{ background: '#f2f2f2', padding: '10px 15px', borderRadius: '12px', flex: 1 }}>
                    <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{c.displayName}</div>
                    <div style={{ fontSize: '14px', color: '#333' }}>{c.content}</div>
@@ -293,3 +294,6 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
 });
 
 export default PostCard;
+
+
+

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { API_URL, BASE_URL } from '../../config/api';
 import axios from 'axios';
 import { auth } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
@@ -30,7 +31,7 @@ export default function ChatWindow({ selectedUser, conversationId: initialConver
     const fetchMessages = async () => {
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`http://localhost:5000/api/chat/${selectedUser.id}`, {
+        const res = await axios.get(`${API_URL}/chat/${selectedUser.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setConversationId(res.data.conversationId);
@@ -38,7 +39,7 @@ export default function ChatWindow({ selectedUser, conversationId: initialConver
         
         // Mark as read immediately when opened
         if (res.data.conversationId) {
-          await axios.put(`http://localhost:5000/api/chat/read`, { conversationId: res.data.conversationId }, {
+          await axios.put(`${API_URL}/chat/read`, { conversationId: res.data.conversationId }, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (socket) {
@@ -66,7 +67,7 @@ export default function ChatWindow({ selectedUser, conversationId: initialConver
           if (msg.sender_id !== user?.uid) {
             socket.emit('message_read', { conversationId, readerId: user?.uid });
             auth.currentUser?.getIdToken().then(token => {
-              axios.put(`http://localhost:5000/api/chat/read`, { conversationId }, {
+              axios.put(`${API_URL}/chat/read`, { conversationId }, {
                 headers: { Authorization: `Bearer ${token}` }
               }).catch(console.error);
             });
@@ -98,7 +99,7 @@ export default function ChatWindow({ selectedUser, conversationId: initialConver
   const handleSend = async (content: string) => {
     try {
       const token = await auth.currentUser?.getIdToken();
-      const res = await axios.post('http://localhost:5000/api/chat/send', 
+      const res = await axios.post(`${API_URL}/chat/send`, 
         { receiverId: selectedUser.id, content },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -141,7 +142,7 @@ export default function ChatWindow({ selectedUser, conversationId: initialConver
             <ArrowLeft size={24} color="#333" />
           </button>
         )}
-        <img src={selectedUser.avatar ? `http://localhost:5000${selectedUser.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.username)}`} alt={selectedUser.username} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+        <img src={selectedUser.avatar ? `${BASE_URL}${selectedUser.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.username)}`} alt={selectedUser.username} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontWeight: 'bold' }}>{selectedUser.displayName}</span>
           <OnlineStatus isOnline={isOnline} lastSeen={lastSeen} />
@@ -172,3 +173,6 @@ export default function ChatWindow({ selectedUser, conversationId: initialConver
     </div>
   );
 }
+
+
+

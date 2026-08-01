@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { API_URL, BASE_URL } from '../config/api';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import {
@@ -11,7 +12,6 @@ import {
   reauthenticateWithCredential,
   updatePassword,
   sendPasswordResetEmail,
-  deleteUser,
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -54,7 +54,7 @@ interface ProfileData {
 
 type Section = 'account' | 'security' | 'privacy' | 'notifications' | 'appearance' | 'data';
 
-const API = 'http://localhost:5000/api';
+const API = `${API_URL}`;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 async function getToken() {
@@ -101,7 +101,7 @@ function SkeletonPanel() {
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function Settings() {
   const { user, logout } = useAuth();
-  const { theme: ctxTheme, toggleTheme } = useTheme();
+  useTheme(); // keep context subscription for side-effects
 
   const [activeSection, setActiveSection] = useState<Section>('account');
   const [loading, setLoading] = useState(true);
@@ -384,7 +384,7 @@ export default function Settings() {
               >
                 {profile.profile_picture ? (
                   <img
-                    src={`http://localhost:5000${profile.profile_picture}`}
+                    src={`${BASE_URL}${profile.profile_picture}`}
                     alt="avatar"
                     className={styles.avatarLarge}
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
@@ -648,7 +648,7 @@ export default function Settings() {
   }
 
   function renderAppearance() {
-    const themes: { value: 'light' | 'dark' | 'system'; label: string; icon: JSX.Element }[] = [
+    const themes: { value: 'light' | 'dark' | 'system'; label: string; icon: React.ReactElement }[] = [
       { value: 'light',  label: 'Light',  icon: <Sun size={28} /> },
       { value: 'dark',   label: 'Dark',   icon: <Moon size={28} /> },
       { value: 'system', label: 'System', icon: <Monitor size={28} /> },
@@ -756,7 +756,7 @@ export default function Settings() {
     );
   }
 
-  const PANEL_META: Record<Section, { title: string; icon: JSX.Element; render: () => JSX.Element }> = {
+  const PANEL_META: Record<Section, { title: string; icon: React.ReactElement; render: () => React.ReactElement }> = {
     account:       { title: 'Account',            icon: <User size={20} className={styles.panelIcon} />,    render: renderAccount },
     security:      { title: 'Security',           icon: <Lock size={20} className={styles.panelIcon} />,    render: renderSecurity },
     privacy:       { title: 'Privacy',            icon: <Shield size={20} className={styles.panelIcon} />,  render: renderPrivacy },
@@ -836,3 +836,6 @@ export default function Settings() {
     </div>
   );
 }
+
+
+

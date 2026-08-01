@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_URL, BASE_URL } from '../config/api';
 import axios from 'axios';
 import { Search, UserPlus, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -48,14 +49,14 @@ export default function Explore() {
       try {
         const token = await getToken();
         if (!token) return;
-        const res = await axios.get('http://localhost:5000/api/users/suggestions', {
+        const res = await axios.get(`${API_URL}/users/suggestions`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const mapped: UserPreview[] = res.data.suggestions.map((u: any) => ({
           id: u.id || u.firebase_uid,
           username: u.username,
           displayName: u.displayName || u.full_name,
-          avatar: u.avatar ? `http://localhost:5000${u.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`,
+          avatar: u.avatar ? `${BASE_URL}${u.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`,
           bio: u.bio,
           isFollowing: false
         }));
@@ -75,7 +76,7 @@ export default function Explore() {
       try {
         const token = await getToken();
         if (!token) return;
-        const res = await axios.get('http://localhost:5000/api/explore/posts?limit=10&offset=0', {
+        const res = await axios.get(`${API_URL}/explore/posts?limit=10&offset=0`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const mappedPosts = res.data.posts.map(mapBackendPostToFrontend);
@@ -100,14 +101,14 @@ export default function Explore() {
       setIsSearching(true);
       try {
         const token = await getToken();
-        const res = await axios.get(`http://localhost:5000/api/users/search?q=${searchQuery}`, {
+        const res = await axios.get(`${API_URL}/users/search?q=${searchQuery}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const results = res.data.users.map((u: any) => ({
           id: u.id,
           username: u.username,
           displayName: u.displayName,
-          avatar: u.avatar ? `http://localhost:5000${u.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`,
+          avatar: u.avatar ? `${BASE_URL}${u.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`,
           bio: u.bio,
           isFollowing: !!u.isFollowing
         }));
@@ -125,7 +126,7 @@ export default function Explore() {
   const mapBackendPostToFrontend = (p: any): PostProps => ({
     id: p.id,
     user_id: p.user_id,
-    userAvatar: p.userAvatar ? (p.userAvatar.startsWith('http') ? p.userAvatar : `http://localhost:5000${p.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
+    userAvatar: p.userAvatar ? (p.userAvatar.startsWith('http') ? p.userAvatar : `${BASE_URL}${p.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
     username: p.displayName || p.username,
     time: new Date(p.created_at).toLocaleString(),
     content: p.content,
@@ -142,7 +143,7 @@ export default function Explore() {
     try {
       const nextPage = page + 1;
       const token = await getToken();
-      const res = await axios.get(`http://localhost:5000/api/explore/posts?limit=10&offset=${nextPage * 10}`, {
+      const res = await axios.get(`${API_URL}/explore/posts?limit=10&offset=${nextPage * 10}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const morePosts = res.data.posts.map(mapBackendPostToFrontend);
@@ -176,9 +177,9 @@ export default function Explore() {
       const headers = { Authorization: `Bearer ${token}` };
       
       if (isCurrentlyFollowing) {
-        await axios.delete(`http://localhost:5000/api/follow/${userId}`, { headers });
+        await axios.delete(`${API_URL}/follow/${userId}`, { headers });
       } else {
-        await axios.post(`http://localhost:5000/api/follow/${userId}`, {}, { headers });
+        await axios.post(`${API_URL}/follow/${userId}`, {}, { headers });
       }
       
       const updateList = (list: UserPreview[]) => list.map(u => u.id === userId ? { ...u, isFollowing: !isCurrentlyFollowing } : u);
@@ -343,3 +344,6 @@ export default function Explore() {
     </div>
   );
 }
+
+
+

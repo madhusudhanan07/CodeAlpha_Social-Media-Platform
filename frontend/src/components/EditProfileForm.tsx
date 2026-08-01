@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_URL, BASE_URL } from '../config/api';
 import axios from 'axios';
 import type { UserProfile } from '../types/Profile';
 import { auth } from '../config/firebase';
@@ -18,10 +19,10 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
     website: initialData.website || ''
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(initialData.profile_picture ? `http://localhost:5000${initialData.profile_picture}` : null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData.profile_picture ? `${BASE_URL}${initialData.profile_picture}` : null);
   
   const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(initialData.cover_photo ? `http://localhost:5000${initialData.cover_photo}` : null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(initialData.cover_photo ? `${BASE_URL}${initialData.cover_photo}` : null);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,7 +52,7 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
         const formDataPayload = new FormData();
         formDataPayload.append('profile_picture', imageFile);
 
-        await axios.post('http://localhost:5000/api/profile/upload', formDataPayload, {
+        await axios.post(`${API_URL}/profile/upload`, formDataPayload, {
           headers: {
             ...headers,
             'Content-Type': 'multipart/form-data'
@@ -64,7 +65,7 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
         const formDataPayload = new FormData();
         formDataPayload.append('cover_photo', coverFile);
 
-        await axios.post('http://localhost:5000/api/profile/upload-cover', formDataPayload, {
+        await axios.post(`${API_URL}/profile/upload-cover`, formDataPayload, {
           headers: {
             ...headers,
             'Content-Type': 'multipart/form-data'
@@ -73,7 +74,7 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
       }
 
       // 2. Update text data
-      await axios.put('http://localhost:5000/api/profile/update', formData, { headers });
+      await axios.put(`${API_URL}/profile/update`, formData, { headers });
 
       onSuccess();
     } catch (err: any) {
@@ -241,3 +242,6 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
     </form>
   );
 }
+
+
+

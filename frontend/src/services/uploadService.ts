@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_URL } from '../config/api';
 import { getAuthToken } from './postService';
 
-const API_URL = 'http://localhost:5000/api/upload';
+const UPLOAD_URL = `${API_URL}/upload`;
 
 export const uploadMultipleImages = async (files: File[]) => {
   const token = await getAuthToken();
@@ -12,7 +13,7 @@ export const uploadMultipleImages = async (files: File[]) => {
     formData.append('images', file);
   });
 
-  const response = await axios.post(`${API_URL}/multiple`, formData, {
+  const response = await axios.post(`${UPLOAD_URL}/multiple`, formData, {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'multipart/form-data',
@@ -29,7 +30,7 @@ export const uploadSingleImage = async (file: File) => {
   const formData = new FormData();
   formData.append('image', file);
 
-  const response = await axios.post(`${API_URL}/single`, formData, {
+  const response = await axios.post(`${UPLOAD_URL}/single`, formData, {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'multipart/form-data',

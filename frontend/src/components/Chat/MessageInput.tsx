@@ -56,3 +56,4 @@ export default function MessageInput({ onSend, onTyping }: InputProps) {
     </div>
   );
 }
+

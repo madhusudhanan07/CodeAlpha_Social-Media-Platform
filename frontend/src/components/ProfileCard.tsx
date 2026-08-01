@@ -1,4 +1,5 @@
 import type { UserProfile } from '../types/Profile';
+import { BASE_URL } from '../config/api';
 
 interface ProfileCardProps {
   profile: UserProfile;
@@ -6,8 +7,8 @@ interface ProfileCardProps {
 
 export default function ProfileCard({ profile }: ProfileCardProps) {
   const defaultAvatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(profile.full_name) + '&background=random';
-  const profilePictureUrl = profile.profile_picture ? `http://localhost:5000${profile.profile_picture}` : defaultAvatar;
-  const coverPhotoUrl = profile.cover_photo ? `http://localhost:5000${profile.cover_photo}` : 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=1000&auto=format&fit=crop'; // Premium fallback cover
+  const profilePictureUrl = profile.profile_picture ? `${BASE_URL}${profile.profile_picture}` : defaultAvatar;
+  const coverPhotoUrl = profile.cover_photo ? `${BASE_URL}${profile.cover_photo}` : 'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=1000&auto=format&fit=crop'; // Premium fallback cover
 
   return (
     <div style={{
@@ -100,3 +101,6 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
     </div>
   );
 }
+
+
+

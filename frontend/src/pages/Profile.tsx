@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { API_URL, BASE_URL } from '../config/api';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { MessageSquare } from 'lucide-react';
@@ -37,8 +38,8 @@ export default function Profile() {
         const headers = { Authorization: `Bearer ${token}` };
         
         const [profileRes, postsRes] = await Promise.all([
-          axios.get(`http://localhost:5000/api/profile/${targetUid}`, { headers }),
-          axios.get(`http://localhost:5000/api/profile/posts?limit=10&offset=0${id ? `&userId=${id}` : ''}`, { headers })
+          axios.get(`${API_URL}/profile/${targetUid}`, { headers }),
+          axios.get(`${API_URL}/profile/posts?limit=10&offset=0${id ? `&userId=${id}` : ''}`, { headers })
         ]);
         
         setProfile(profileRes.data.profile);
@@ -50,11 +51,11 @@ export default function Profile() {
         const fetchedPosts: PostProps[] = postsRes.data.posts.map((p: any) => ({
           id: p.id,
           user_id: p.user_id,
-          userAvatar: p.user_avatar ? `http://localhost:5000${p.user_avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
+          userAvatar: p.user_avatar ? `${BASE_URL}${p.user_avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
           username: p.username,
           time: new Date(p.created_at).toLocaleString(),
           content: p.content,
-          image: p.image_url ? `http://localhost:5000${p.image_url}` : undefined,
+          image: p.image_url ? `${BASE_URL}${p.image_url}` : undefined,
           likes: p.likes_count || 0,
           comments: p.comments_count || 0,
           isLikedByCurrentUser: p.is_liked_by_current_user || false
@@ -83,16 +84,16 @@ export default function Profile() {
       const nextPage = page + 1;
       const token = await auth.currentUser?.getIdToken();
       const headers = { Authorization: `Bearer ${token}` };
-      const res = await axios.get(`http://localhost:5000/api/profile/posts?limit=10&offset=${nextPage * 10}${id ? `&userId=${id}` : ''}`, { headers });
+      const res = await axios.get(`${API_URL}/profile/posts?limit=10&offset=${nextPage * 10}${id ? `&userId=${id}` : ''}`, { headers });
       
       const morePosts: PostProps[] = res.data.posts.map((p: any) => ({
           id: p.id,
           user_id: p.user_id,
-          userAvatar: p.user_avatar ? `http://localhost:5000${p.user_avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
+          userAvatar: p.user_avatar ? `${BASE_URL}${p.user_avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
           username: p.username,
           time: new Date(p.created_at).toLocaleString(),
           content: p.content,
-          image: p.image_url ? `http://localhost:5000${p.image_url}` : undefined,
+          image: p.image_url ? `${BASE_URL}${p.image_url}` : undefined,
           images: p.images || (p.image_url ? [p.image_url] : []),
           likes: p.likes_count || 0,
           comments: p.comments_count || 0,
@@ -159,7 +160,7 @@ export default function Profile() {
                 onClick={async () => {
                   try {
                     const token = await auth.currentUser?.getIdToken();
-                    const res = await axios.post(`http://localhost:5000/api/follows/${targetUid}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                    const res = await axios.post(`${API_URL}/follows/${targetUid}`, {}, { headers: { Authorization: `Bearer ${token}` } });
                     setIsFollowing(res.data.followed);
                     setFollowersCounter(prev => res.data.followed ? prev + 1 : Math.max(0, prev - 1));
                   } catch (e) {
@@ -206,3 +207,6 @@ export default function Profile() {
     </div>
   );
 }
+
+
+

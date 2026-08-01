@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { API_URL, BASE_URL } from '../config/api';
 import axios from 'axios';
 import { Users, Search, UserPlus, Check, X, UserMinus, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -41,16 +42,16 @@ export default function Friends() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [reqs, fr, suggs] = await Promise.all([
-        axios.get('http://localhost:5000/api/friends/requests', { headers }),
-        axios.get('http://localhost:5000/api/friends/list', { headers }),
-        axios.get('http://localhost:5000/api/friends/suggestions', { headers })
+        axios.get(`${API_URL}/friends/requests`, { headers }),
+        axios.get(`${API_URL}/friends/list`, { headers }),
+        axios.get(`${API_URL}/friends/suggestions`, { headers })
       ]);
 
       const mapUser = (u: any) => ({
         id: u.senderId || u.id,
         username: u.username,
         displayName: u.displayName,
-        avatar: u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000${u.avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`,
+        avatar: u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `${BASE_URL}${u.avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`,
         mutualFriends: u.mutualFriends || 0,
         requestId: u.requestId,
         lastActive: u.lastActive
@@ -81,12 +82,12 @@ export default function Friends() {
       try {
         const token = await getToken();
         const headers = { Authorization: `Bearer ${token}` };
-        const res = await axios.get(`http://localhost:5000/api/friends/search?q=${searchQuery}`, { headers });
+        const res = await axios.get(`${API_URL}/friends/search?q=${searchQuery}`, { headers });
         setSearchResults(res.data.friends.map((u: any) => ({
           id: u.id,
           username: u.username,
           displayName: u.displayName,
-          avatar: u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `http://localhost:5000${u.avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`
+          avatar: u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `${BASE_URL}${u.avatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`
         })));
       } catch (error) {
         toast.error('Search failed');
@@ -101,7 +102,7 @@ export default function Friends() {
   const sendRequest = async (userId: string) => {
     try {
       const token = await getToken();
-      await axios.post(`http://localhost:5000/api/friends/request/${userId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.post(`${API_URL}/friends/request/${userId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
       toast.success('Friend request sent!');
       setSuggestions(prev => prev.filter(s => s.id !== userId));
     } catch (err: any) {
@@ -112,7 +113,7 @@ export default function Friends() {
   const acceptRequest = async (requestId: number) => {
     try {
       const token = await getToken();
-      await axios.put(`http://localhost:5000/api/friends/accept/${requestId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`${API_URL}/friends/accept/${requestId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
       toast.success('Friend accepted!');
       fetchData(); // reload
     } catch (err) {
@@ -123,7 +124,7 @@ export default function Friends() {
   const rejectRequest = async (requestId: number) => {
     try {
       const token = await getToken();
-      await axios.delete(`http://localhost:5000/api/friends/reject/${requestId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`${API_URL}/friends/reject/${requestId}`, { headers: { Authorization: `Bearer ${token}` } });
       toast.success('Request rejected.');
       setRequests(prev => prev.filter(r => r.requestId !== requestId));
     } catch (err) {
@@ -135,7 +136,7 @@ export default function Friends() {
     if (!window.confirm('Are you sure you want to remove this friend?')) return;
     try {
       const token = await getToken();
-      await axios.delete(`http://localhost:5000/api/friends/remove/${friendId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`${API_URL}/friends/remove/${friendId}`, { headers: { Authorization: `Bearer ${token}` } });
       toast.success('Friend removed.');
       setFriends(prev => prev.filter(f => f.id !== friendId));
     } catch (err) {
@@ -284,3 +285,6 @@ export default function Friends() {
     </div>
   );
 }
+
+
+

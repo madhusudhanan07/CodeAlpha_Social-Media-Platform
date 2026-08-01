@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { API_URL } from '../config/api';
 import axios from 'axios';
 import { Bookmark, LayoutGrid, List, Plus, Search, X, Pencil, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -51,8 +52,8 @@ export default function Saved() {
       setLoading(true);
       const token = await getToken();
       const [postsRes, colsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/saved', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://localhost:5000/api/saved/collections/all', { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API_URL}/saved`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/saved/collections/all`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setPosts(postsRes.data.posts || []);
       setCollections(colsRes.data.collections || []);
@@ -105,7 +106,7 @@ export default function Saved() {
       const token = await getToken();
       if (modalMode === 'create') {
         const res = await axios.post(
-          'http://localhost:5000/api/saved/collections',
+          `${API_URL}/saved/collections`,
           { name },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -113,7 +114,7 @@ export default function Saved() {
         toast.success('Collection created!');
       } else {
         const res = await axios.patch(
-          `http://localhost:5000/api/saved/collections/${modalTargetId}`,
+          `${API_URL}/saved/collections/${modalTargetId}`,
           { name },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -141,7 +142,7 @@ export default function Saved() {
     try {
       const token = await getToken();
       await axios.delete(
-        `http://localhost:5000/api/saved/collections/${confirmDeleteId}`,
+        `${API_URL}/saved/collections/${confirmDeleteId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setCollections(prev => prev.filter(c => c.id !== confirmDeleteId));
@@ -406,3 +407,5 @@ export default function Saved() {
     </div>
   );
 }
+
+

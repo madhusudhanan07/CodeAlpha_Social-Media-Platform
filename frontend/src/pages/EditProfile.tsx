@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API_URL } from '../config/api';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +19,7 @@ export default function EditProfile() {
       if (!user) return;
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`http://localhost:5000/api/profile/${user.uid}`, {
+        const res = await axios.get(`${API_URL}/profile/${user.uid}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setProfile(res.data.profile);
@@ -59,3 +60,5 @@ export default function EditProfile() {
     </div>
   );
 }
+
+

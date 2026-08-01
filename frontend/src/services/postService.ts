@@ -1,7 +1,10 @@
 import axios from 'axios';
+import { API_URL } from '../config/api';
 import { auth } from '../config/firebase';
 
-const API_URL = 'http://localhost:5000/api/posts';
+const POSTS_URL    = `${API_URL}/posts`;
+const LIKES_URL    = `${API_URL}/likes`;
+const COMMENTS_URL = `${API_URL}/comments`;
 
 export const getAuthToken = async () => {
   if (auth.currentUser) {
@@ -14,7 +17,7 @@ export const fetchPosts = async (limit: number = 10, offset: number = 0) => {
   const token = await getAuthToken();
   if (!token) throw new Error('Not authenticated');
 
-  const response = await axios.get(`${API_URL}?limit=${limit}&offset=${offset}`, {
+  const response = await axios.get(`${POSTS_URL}?limit=${limit}&offset=${offset}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.data.posts;
@@ -25,7 +28,7 @@ export const createPost = async (content: string, imageUrl: string = '', images:
   if (!token) throw new Error('Not authenticated');
 
   const response = await axios.post(
-    API_URL,
+    POSTS_URL,
     { content, image_url: imageUrl, images },
     { headers: { Authorization: `Bearer ${token}` } }
   );
@@ -35,27 +38,23 @@ export const createPost = async (content: string, imageUrl: string = '', images:
 export const updatePost = async (id: number, content: string) => {
   const token = await getAuthToken();
   if (!token) throw new Error('Not authenticated');
-  const response = await axios.put(`${API_URL}/${id}`, { content }, { headers: { Authorization: `Bearer ${token}` }});
+  const response = await axios.put(`${POSTS_URL}/${id}`, { content }, { headers: { Authorization: `Bearer ${token}` } });
   return response.data.post;
 };
 
 export const deletePost = async (id: number) => {
   const token = await getAuthToken();
   if (!token) throw new Error('Not authenticated');
-  await axios.delete(`${API_URL}/${id}`, { headers: { Authorization: `Bearer ${token}` }});
+  await axios.delete(`${POSTS_URL}/${id}`, { headers: { Authorization: `Bearer ${token}` } });
   return true;
 };
-
-const LIKES_URL = 'http://localhost:5000/api/likes';
 
 export const toggleLike = async (postId: number) => {
   const token = await getAuthToken();
   if (!token) throw new Error('Not authenticated');
-  const response = await axios.post(`${LIKES_URL}/${postId}`, {}, { headers: { Authorization: `Bearer ${token}` }});
+  const response = await axios.post(`${LIKES_URL}/${postId}`, {}, { headers: { Authorization: `Bearer ${token}` } });
   return response.data.liked;
 };
-
-const COMMENTS_URL = 'http://localhost:5000/api/comments';
 
 export const fetchComments = async (postId: number) => {
   const response = await axios.get(`${COMMENTS_URL}/${postId}`);
@@ -65,6 +64,6 @@ export const fetchComments = async (postId: number) => {
 export const createComment = async (postId: number, content: string) => {
   const token = await getAuthToken();
   if (!token) throw new Error('Not authenticated');
-  const response = await axios.post(`${COMMENTS_URL}/${postId}`, { content }, { headers: { Authorization: `Bearer ${token}` }});
+  const response = await axios.post(`${COMMENTS_URL}/${postId}`, { content }, { headers: { Authorization: `Bearer ${token}` } });
   return response.data.comment;
 };

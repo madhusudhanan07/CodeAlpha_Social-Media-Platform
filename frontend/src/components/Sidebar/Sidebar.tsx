@@ -1,4 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
+import { API_URL, BASE_URL } from '../../config/api';
 import { Home, User, Compass, Users, MessageSquare, Bookmark, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
@@ -26,7 +27,7 @@ export default function Sidebar() {
       if (!user) return;
       try {
         const token = await auth.currentUser?.getIdToken();
-        const res = await axios.get(`http://localhost:5000/api/profile/${user.uid}`, {
+        const res = await axios.get(`${API_URL}/profile/${user.uid}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (isMounted && res.data?.profile) {
@@ -34,7 +35,7 @@ export default function Sidebar() {
           setProfilePreview({
             name: p.full_name,
             username: p.username,
-            avatar: p.profile_picture ? `http://localhost:5000${p.profile_picture}` : user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name)}`
+            avatar: p.profile_picture ? `${BASE_URL}${p.profile_picture}` : user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.full_name)}`
           });
         }
       } catch(err) {
@@ -75,3 +76,6 @@ export default function Sidebar() {
     </aside>
   );
 }
+
+
+

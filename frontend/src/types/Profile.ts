@@ -15,3 +15,4 @@ export interface UserProfile {
   website?: string;
   is_following_current?: boolean;
 }
+

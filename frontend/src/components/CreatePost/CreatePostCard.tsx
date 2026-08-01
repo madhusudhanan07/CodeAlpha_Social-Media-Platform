@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { API_URL, BASE_URL } from '../../config/api';
 import { Image as ImageIcon, Smile, Loader2, X } from 'lucide-react';
 import { createPost } from '../../services/postService';
 import { useAuth } from '../../context/AuthContext';
@@ -68,12 +69,12 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
       if (!user) return;
       try {
         const token = await user.getIdToken();
-        const res = await axios.get(`http://localhost:5000/api/profile/${user.uid}`, {
+        const res = await axios.get(`${API_URL}/profile/${user.uid}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (isMounted && res.data?.profile?.profile_picture) {
           const pic = res.data.profile.profile_picture;
-          setDbAvatar(pic.startsWith('http') ? pic : `http://localhost:5000${pic}`);
+          setDbAvatar(pic.startsWith('http') ? pic : `${BASE_URL}${pic}`);
         }
       } catch (err) {
         // silently ignore error for avatar fetch
@@ -118,7 +119,7 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
       const formattedPost: PostProps = {
         id: newPost.id,
         user_id: newPost.user_id,
-        userAvatar: newPost.userAvatar ? (newPost.userAvatar.startsWith('http') ? newPost.userAvatar : `http://localhost:5000${newPost.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(newPost.displayName || newPost.username || 'User')}`,
+        userAvatar: newPost.userAvatar ? (newPost.userAvatar.startsWith('http') ? newPost.userAvatar : `${BASE_URL}${newPost.userAvatar}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(newPost.displayName || newPost.username || 'User')}`,
         username: newPost.displayName || newPost.username || 'User',
         time: new Date(newPost.created_at).toLocaleString(),
         content: newPost.content,
@@ -309,3 +310,6 @@ export default function CreatePostCard({ onPostCreated }: CreatePostCardProps) {
     </div>
   );
 }
+
+
+

@@ -11,3 +11,4 @@ export default function OnlineStatus({ isOnline, lastSeen }: OnlineStatusProps) 
     </div>
   );
 }
+
