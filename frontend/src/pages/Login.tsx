@@ -35,10 +35,11 @@ export default function Login() {
     <div className={styles.container}>
       <button
         onClick={toggleTheme}
-        style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#00d2ff', zIndex: 10 }}
+        className={styles.themeToggle}
         title="Toggle Theme"
+        aria-label="Toggle theme"
       >
-        {theme === 'light' ? <Moon size={28} /> : <Sun size={28} />}
+        {theme === 'light' ? <Moon size={24} /> : <Sun size={24} />}
       </button>
 
       <div className={styles.card}>

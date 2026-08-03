@@ -1,26 +1,68 @@
+/* Theme Toggle Button */
+.themeToggle {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #00d2ff;
+  z-index: 99999;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+.themeToggle:hover {
+  transform: scale(1.12) rotate(15deg);
+  background: rgba(0, 210, 255, 0.25);
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.6);
+}
+
 /* Layout and Background */
 .container {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #0b0f19;
+  background: #060a12 url('/auth_bg.png') no-repeat center center / cover;
+  position: relative;
   font-family: 'Poppins', sans-serif;
+  overflow: hidden;
+  transition: all 0.4s ease;
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(11, 15, 25, 0.3) 0%, rgba(6, 10, 18, 0.8) 100%);
+  pointer-events: none;
+  transition: background 0.4s ease;
 }
 
 /* Neon Box */
 .card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   padding: 50px 40px;
   border-radius: 20px;
-  /* Dark background + gradient border trick */
   background: 
     linear-gradient(#0b0f19, #0b0f19) padding-box,
-    linear-gradient(135deg, #00d2ff 0%, #090909 30%, #090909 70%, #ff00c8 100%) border-box;
-  border: 3px solid transparent;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9);
-  z-index: 1;
+    linear-gradient(135deg, #00d2ff 0%, #0b0f19 30%, #0b0f19 70%, #ff00c8 100%) border-box;
+  border: 2px solid transparent;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(0, 210, 255, 0.2);
+  z-index: 2;
+  position: relative;
+  transition: all 0.4s ease;
 }
 
 /* Title */
@@ -32,6 +74,7 @@
   font-weight: 700;
   letter-spacing: 2px;
   text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+  transition: color 0.3s ease;
 }
 
 .titlePink {
@@ -57,6 +100,7 @@
   left: 0;
   color: #00d2ff;
   margin-left: 5px;
+  transition: color 0.3s ease;
 }
 
 .inputGroup input {
@@ -64,14 +108,14 @@
   padding: 10px 10px 10px 35px;
   background: transparent !important;
   border: none;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
   color: #fff;
   font-size: 1rem;
   outline: none;
   transition: 0.3s;
 }
 
-/* Fix Chrome Autofill white background */
+/* Fix Chrome Autofill */
 .inputGroup input:-webkit-autofill,
 .inputGroup input:-webkit-autofill:hover, 
 .inputGroup input:-webkit-autofill:focus, 
@@ -156,4 +200,82 @@
 
 .linkPink:hover {
   text-shadow: 0 0 5px rgba(255, 0, 200, 0.5);
+}
+
+/* ================= Light Theme Overrides ================= */
+:global([data-theme='light']) .container {
+  background: #e0f2fe url('/auth_bg.png') no-repeat center center / cover;
+}
+
+:global([data-theme='light']) .container::before {
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.45) 0%, rgba(224, 242, 254, 0.85) 100%);
+}
+
+:global([data-theme='light']) .themeToggle {
+  color: #0284c7;
+  background: rgba(2, 132, 199, 0.15);
+  border: 1px solid rgba(2, 132, 199, 0.3);
+}
+
+:global([data-theme='light']) .themeToggle:hover {
+  background: rgba(2, 132, 199, 0.3);
+  box-shadow: 0 0 20px rgba(2, 132, 199, 0.5);
+}
+
+:global([data-theme='light']) .card {
+  background: 
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(135deg, #00d2ff 0%, #ffffff 30%, #ffffff 70%, #ff00c8 100%) border-box;
+  border: 3px solid transparent;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    -10px -10px 30px rgba(0, 210, 255, 0.55),
+    10px 10px 30px rgba(255, 0, 200, 0.55),
+    inset 0 0 15px rgba(0, 210, 255, 0.1);
+}
+
+:global([data-theme='light']) .title {
+  color: #0284c7;
+  text-shadow: 0 0 10px rgba(2, 132, 199, 0.4);
+}
+
+:global([data-theme='light']) .titlePink {
+  color: #d946ef;
+  text-shadow: 0 0 10px rgba(217, 70, 239, 0.4);
+}
+
+:global([data-theme='light']) .icon {
+  color: #0284c7;
+}
+
+:global([data-theme='light']) .inputGroup input {
+  color: #0f172a;
+  border-bottom: 2px solid rgba(15, 23, 42, 0.2);
+}
+
+:global([data-theme='light']) .inputGroup input::placeholder {
+  color: rgba(15, 23, 42, 0.45);
+}
+
+:global([data-theme='light']) .inputGroup input:-webkit-autofill,
+:global([data-theme='light']) .inputGroup input:-webkit-autofill:hover, 
+:global([data-theme='light']) .inputGroup input:-webkit-autofill:focus, 
+:global([data-theme='light']) .inputGroup input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+:global([data-theme='light']) .submitBtn {
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+:global([data-theme='light']) .submitBtn:hover {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(2, 132, 199, 0.5);
+}
+
+:global([data-theme='light']) .link {
+  color: #0284c7;
 }
