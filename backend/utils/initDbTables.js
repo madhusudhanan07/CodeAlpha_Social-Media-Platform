@@ -131,7 +131,10 @@ async function initDbTables() {
         conversation_id INT NOT NULL,
         sender_id VARCHAR(128) NOT NULL,
         receiver_id VARCHAR(128) NOT NULL,
-        content TEXT NOT NULL,
+        message TEXT,
+        image_url VARCHAR(500) DEFAULT NULL,
+        status VARCHAR(20) DEFAULT 'sent',
+        content TEXT,
         is_read BOOLEAN DEFAULT FALSE,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
@@ -139,6 +142,25 @@ async function initDbTables() {
         FOREIGN KEY (receiver_id) REFERENCES users(firebase_uid) ON DELETE CASCADE
       )
     `);
+
+    try {
+      const [cols] = await db.execute(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'messages'
+      `);
+      const colNames = cols.map(c => c.COLUMN_NAME);
+      if (!colNames.includes('message')) {
+        await db.execute(`ALTER TABLE messages ADD COLUMN message TEXT`);
+      }
+      if (!colNames.includes('image_url')) {
+        await db.execute(`ALTER TABLE messages ADD COLUMN image_url VARCHAR(500) DEFAULT NULL`);
+      }
+      if (!colNames.includes('status')) {
+        await db.execute(`ALTER TABLE messages ADD COLUMN status VARCHAR(20) DEFAULT 'sent'`);
+      }
+    } catch (e) {
+      console.warn('⚠️ Non-fatal messages column check error:', e.message);
+    }
 
     // 9. Post Images table
     await db.execute(`

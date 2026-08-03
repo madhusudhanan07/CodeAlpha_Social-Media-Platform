@@ -27,7 +27,7 @@ exports.sendRequest = async (req, res) => {
     `, [senderId, receiverId, receiverId, senderId]);
 
     if (existingReq.length > 0) {
-      return res.status(400).json({ success: false, message: 'Request already exists.' });
+      return res.status(200).json({ success: true, message: 'Friend request already sent.' });
     }
 
     await db.execute(`
