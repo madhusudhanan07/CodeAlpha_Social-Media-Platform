@@ -22,7 +22,7 @@ class NotificationsModel {
     const [inserted] = await db.execute(`
       SELECT n.*, u.username as sender_username, u.full_name as sender_name, u.profile_picture as sender_avatar
       FROM notifications n
-      JOIN users u ON n.sender_id = u.firebase_uid
+      LEFT JOIN users u ON n.sender_id = u.firebase_uid
       WHERE n.id = ?
     `, [result.insertId]);
 

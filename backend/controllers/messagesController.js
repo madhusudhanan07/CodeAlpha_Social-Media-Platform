@@ -84,7 +84,33 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid data' });
     }
 
-    // Must be friends OR followers/following
+    // Auto-sync sender & receiver to MySQL users table to prevent Foreign Key errors
+    try {
+      const [senderCheck] = await db.execute('SELECT firebase_uid FROM users WHERE firebase_uid = ?', [senderId]);
+      if (senderCheck.length === 0) {
+        await db.execute(
+          `INSERT INTO users (firebase_uid, email, full_name, username) VALUES (?, ?, ?, ?)`,
+          [senderId, req.user.email || 'user@app.com', req.user.name || 'User', 'user_' + senderId.substring(0, 5)]
+        );
+      }
+
+      const [recCheck] = await db.execute('SELECT firebase_uid FROM users WHERE firebase_uid = ?', [receiverId]);
+      if (recCheck.length === 0) {
+        await db.execute(
+          `INSERT INTO users (firebase_uid, email, full_name, username) VALUES (?, ?, ?, ?)`,
+          [receiverId, 'user@app.com', 'User', 'user_' + receiverId.substring(0, 5)]
+        );
+      }
+    } catch (userErr) {
+      console.warn('⚠️ User sync check in sendMessage:', userErr.message);
+    }
+
+    // Check existing conversation or friends/follows status
+    const [existingConv] = await db.execute(`
+      SELECT id FROM conversations
+      WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
+    `, [senderId, receiverId, receiverId, senderId]);
+
     const [friends] = await db.execute(`
       SELECT * FROM friends 
       WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
@@ -95,17 +121,11 @@ exports.sendMessage = async (req, res) => {
       WHERE (follower_id = ? AND following_id = ?) OR (follower_id = ? AND following_id = ?)
     `, [senderId, receiverId, receiverId, senderId]);
 
-    if (friends.length === 0 && follows.length === 0) {
+    if (existingConv.length === 0 && friends.length === 0 && follows.length === 0) {
       return res.status(403).json({ success: false, message: 'Can only message friends or followers.' });
     }
 
     let conversationId = null;
-
-    // First check or create conversation
-    const [existingConv] = await db.execute(`
-      SELECT id FROM conversations
-      WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
-    `, [senderId, receiverId, receiverId, senderId]);
 
     if (existingConv.length > 0) {
       conversationId = existingConv[0].id;
@@ -142,30 +162,33 @@ exports.sendMessage = async (req, res) => {
     };
 
     // Socket publish if user connected
-    const connectedUsers = getConnectedUsers && getConnectedUsers() ? getConnectedUsers() : {};
-    const io = getIo && getIo() ? getIo() : null;
+    try {
+      const connectedUsers = getConnectedUsers && getConnectedUsers() ? getConnectedUsers() : {};
+      const io = getIo && getIo() ? getIo() : null;
 
-    if (io) {
-       const receiverSocket = connectedUsers[receiverId];
-       if (receiverSocket) {
-          io.to(receiverSocket).emit('receive_message', msgObj);
-          
-          // Mark as delivered immediately
-          await db.execute(`UPDATE messages SET status = 'delivered' WHERE id = ?`, [msgObj.id]);
-          msgObj.status = 'delivered';
-       } else {
-          // If offline, create notification
-          await NotificationsModel.createNotification(receiverId, senderId, 'MESSAGE', conversationId, message || 'Sent an image');
-       }
-    } else {
-      // If socket is not running for some reason, fallback
-      await NotificationsModel.createNotification(receiverId, senderId, 'MESSAGE', conversationId, message || 'Sent an image');
+      if (io) {
+         const receiverSocket = connectedUsers[receiverId];
+         if (receiverSocket) {
+            io.to(receiverSocket).emit('receive_message', msgObj);
+            
+            // Mark as delivered immediately
+            await db.execute(`UPDATE messages SET status = 'delivered' WHERE id = ?`, [msgObj.id]);
+            msgObj.status = 'delivered';
+         } else {
+            // If offline, create notification
+            await NotificationsModel.createNotification(receiverId, senderId, 'MESSAGE', conversationId, message || 'Sent an image');
+         }
+      } else {
+        await NotificationsModel.createNotification(receiverId, senderId, 'MESSAGE', conversationId, message || 'Sent an image');
+      }
+    } catch (notifErr) {
+      console.warn('⚠️ Socket/Notification error in sendMessage:', notifErr.message);
     }
 
     res.status(200).json({ success: true, message: msgObj });
   } catch (error) {
     console.error('sendMessage error', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 };
 
