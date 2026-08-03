@@ -1,0 +1,9 @@
+{
+  "name": "codealpha-social-media-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "build": "npm --prefix frontend run build"
+  }
+}
