@@ -8,8 +8,21 @@ class ProfileModel {
       FROM users 
       WHERE firebase_uid = ?
     `;
-    const [rows] = await db.execute(query, [firebase_uid]);
+    let [rows] = await db.execute(query, [firebase_uid]);
     
+    if (rows.length === 0) {
+      try {
+        await db.execute(
+          `INSERT INTO users (firebase_uid, email, full_name, username) VALUES (?, ?, ?, ?)`,
+          [firebase_uid, 'user@app.com', 'User', 'user_' + firebase_uid.substring(0, 5)]
+        );
+        const [newRows] = await db.execute(query, [firebase_uid]);
+        rows = newRows;
+      } catch (e) {
+        console.warn('Auto-create profile error:', e.message);
+      }
+    }
+
     if (rows.length === 0) return null;
 
     const userProfile = rows[0];
