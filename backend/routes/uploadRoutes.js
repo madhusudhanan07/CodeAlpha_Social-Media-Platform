@@ -25,14 +25,15 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
-    // Accept images or common document formats
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('application/')) {
-      cb(null, true);
-    } else {
-      cb(null, true);
-    }
+    cb(null, true);
   }
 });
+
+function getFullUrl(req, filename) {
+  const host = req.get('host');
+  const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+  return `${protocol}://${host}/uploads/${filename}`;
+}
 
 // Single media upload at root POST /api/upload
 router.post('/', verifyToken, upload.single('image'), (req, res) => {
@@ -40,8 +41,9 @@ router.post('/', verifyToken, upload.single('image'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-    const imageUrl = `/uploads/${req.file.filename}`;
-    res.status(200).json({ success: true, url: imageUrl, imageUrl: imageUrl });
+    const fullUrl = getFullUrl(req, req.file.filename);
+    const relativeUrl = `/uploads/${req.file.filename}`;
+    res.status(200).json({ success: true, url: fullUrl, imageUrl: fullUrl, relativeUrl });
   } catch (error) {
     console.error('Upload Error:', error);
     res.status(500).json({ success: false, message: 'Upload failed' });
@@ -54,8 +56,9 @@ router.post('/single', verifyToken, upload.single('image'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
-    const imageUrl = `/uploads/${req.file.filename}`;
-    res.status(200).json({ success: true, url: imageUrl, imageUrl: imageUrl });
+    const fullUrl = getFullUrl(req, req.file.filename);
+    const relativeUrl = `/uploads/${req.file.filename}`;
+    res.status(200).json({ success: true, url: fullUrl, imageUrl: fullUrl, relativeUrl });
   } catch (error) {
     console.error('Upload Error:', error);
     res.status(500).json({ success: false, message: 'Upload failed' });
@@ -68,7 +71,7 @@ router.post('/multiple', verifyToken, upload.array('images', 10), (req, res) => 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ success: false, message: 'No files uploaded' });
     }
-    const urls = req.files.map(file => `/uploads/${file.filename}`);
+    const urls = req.files.map(file => getFullUrl(req, file.filename));
     res.status(200).json({ success: true, urls });
   } catch (error) {
     console.error('Multi Upload Error:', error);

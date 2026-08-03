@@ -60,48 +60,43 @@ export default function MessageInput({ onSend, onTyping }: InputProps) {
   };
 
   // 1. Device Image Upload
-  const handleDeviceImageSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleDeviceImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      const token = await auth.currentUser?.getIdToken();
 
-      const res = await axios.post(`${API_URL}/upload`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`
-        }
-      });
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
 
-      if (res.data?.url) {
-        onSend(`[IMAGE] ${res.data.url}`);
-      } else {
-        // Fallback to DataURL
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (reader.result) {
-            onSend(`[IMAGE] ${reader.result as string}`);
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        const token = await auth.currentUser?.getIdToken();
+
+        const res = await axios.post(`${API_URL}/upload`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`
           }
-        };
-        reader.readAsDataURL(file);
-      }
-    } catch (err) {
-      console.warn('Upload fallback to local DataURL');
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (reader.result) {
-          onSend(`[IMAGE] ${reader.result as string}`);
+        });
+
+        if (res.data?.url) {
+          onSend(`[IMAGE] ${res.data.url}`);
+        } else {
+          onSend(`[IMAGE] ${dataUrl}`);
         }
-      };
-      reader.readAsDataURL(file);
-    } finally {
-      setIsUploading(false);
-      closeModal();
-    }
+      } catch (err) {
+        console.warn('Upload fallback to local DataURL:', err);
+        onSend(`[IMAGE] ${dataUrl}`);
+      } finally {
+        setIsUploading(false);
+        closeModal();
+      }
+    };
+
+    reader.readAsDataURL(file);
   };
 
   // 2. Image URL Submit
