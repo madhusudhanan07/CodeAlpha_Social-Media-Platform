@@ -59,7 +59,7 @@ exports.getMessages = async (req, res) => {
         conversation_id as conversationId,
         sender_id as senderId,
         receiver_id as receiverId,
-        message,
+        COALESCE(message, content, '') as message,
         image_url as image,
         status,
         created_at as time
@@ -137,11 +137,11 @@ exports.sendMessage = async (req, res) => {
       conversationId = newConv.insertId;
     }
 
-    // Insert message
+    // Insert message (setting both message and content columns for backward compatibility)
     const [newMsg] = await db.execute(`
-      INSERT INTO messages (conversation_id, sender_id, receiver_id, message, image_url, status)
-      VALUES (?, ?, ?, ?, ?, 'sent')
-    `, [conversationId, senderId, receiverId, message || '', image || null]);
+      INSERT INTO messages (conversation_id, sender_id, receiver_id, message, content, image_url, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'sent')
+    `, [conversationId, senderId, receiverId, message || '', message || '', image || null]);
 
     // Update conversation
     await db.execute(`

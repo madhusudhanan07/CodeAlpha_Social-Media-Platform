@@ -158,6 +158,9 @@ async function initDbTables() {
       if (!colNames.includes('status')) {
         await db.execute(`ALTER TABLE messages ADD COLUMN status VARCHAR(20) DEFAULT 'sent'`);
       }
+      if (colNames.includes('content')) {
+        await db.execute(`ALTER TABLE messages MODIFY COLUMN content TEXT NULL`);
+      }
     } catch (e) {
       console.warn('⚠️ Non-fatal messages column check error:', e.message);
     }
