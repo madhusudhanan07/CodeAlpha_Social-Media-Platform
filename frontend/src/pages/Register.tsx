@@ -28,6 +28,10 @@ export default function Register() {
 
     try {
       // 1. Firebase Auth Registration
+      if (!auth) {
+        setError('Authentication service is not available. Please check Firebase configuration.');
+        return;
+      }
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 

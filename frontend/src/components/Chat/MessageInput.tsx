@@ -73,7 +73,7 @@ export default function MessageInput({ onSend, onTyping }: InputProps) {
       try {
         const formData = new FormData();
         formData.append('image', file);
-        const token = await auth.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken();
 
         const res = await axios.post(`${API_URL}/upload`, formData, {
           headers: {

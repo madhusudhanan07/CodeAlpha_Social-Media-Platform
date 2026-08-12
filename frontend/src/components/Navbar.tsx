@@ -19,7 +19,7 @@ export default function Navbar() {
     const fetchAvatar = async () => {
       if (!user) return;
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken();
         const res = await axios.get(`${API_URL}/profile/${user.uid}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -52,7 +52,7 @@ export default function Navbar() {
 
     searchTimeout.current = setTimeout(async () => {
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken();
         const res = await axios.get(`${API_URL}/search/users?q=${searchQuery}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -75,7 +75,7 @@ export default function Navbar() {
     if (!user) return;
     const fetchNotifications = async () => {
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken();
         const res = await axios.get(`${API_URL}/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -105,7 +105,7 @@ export default function Navbar() {
   const handleMarkAsRead = async () => {
     if (unreadCount === 0) return;
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken();
       await axios.put(`${API_URL}/notifications/read-all`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });

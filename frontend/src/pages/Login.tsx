@@ -23,6 +23,10 @@ export default function Login() {
     }
 
     try {
+      if (!auth) {
+        setError('Authentication service is not available. Please check Firebase configuration.');
+        return;
+      }
       await signInWithEmailAndPassword(auth, email, password);
       // MainLayout ensures auth wrapper takes care of redirection dynamically if requested before
       navigate('/');

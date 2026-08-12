@@ -18,7 +18,7 @@ export default function EditProfile() {
     const fetchProfile = async () => {
       if (!user) return;
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken();
         const res = await axios.get(`${API_URL}/profile/${user.uid}`, {
           headers: { Authorization: `Bearer ${token}` }
         });

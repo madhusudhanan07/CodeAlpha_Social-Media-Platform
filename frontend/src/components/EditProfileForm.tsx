@@ -44,7 +44,7 @@ export default function EditProfileForm({ initialData, onSuccess, onCancel }: Ed
     setLoading(true);
 
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken();
       const headers = { Authorization: `Bearer ${token}` };
 
       // 1. Upload new profile picture if selected

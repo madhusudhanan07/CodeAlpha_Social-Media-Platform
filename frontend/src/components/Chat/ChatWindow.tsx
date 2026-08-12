@@ -30,7 +30,7 @@ export default function ChatWindow({ selectedUser, conversationId: initialConver
     if (!selectedUser) return;
     const fetchMessages = async () => {
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken();
         const res = await axios.get(`${API_URL}/chat/${selectedUser.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -66,7 +66,7 @@ export default function ChatWindow({ selectedUser, conversationId: initialConver
           // Mark read automatically
           if (msg.sender_id !== user?.uid) {
             socket.emit('message_read', { conversationId, readerId: user?.uid });
-            auth.currentUser?.getIdToken().then(token => {
+            auth?.currentUser?.getIdToken().then(token => {
               axios.put(`${API_URL}/chat/read`, { conversationId }, {
                 headers: { Authorization: `Bearer ${token}` }
               }).catch(console.error);
@@ -98,7 +98,7 @@ export default function ChatWindow({ selectedUser, conversationId: initialConver
 
   const handleSend = async (content: string) => {
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken();
       const res = await axios.post(`${API_URL}/chat/send`, 
         { receiverId: selectedUser.id, content },
         { headers: { Authorization: `Bearer ${token}` } }

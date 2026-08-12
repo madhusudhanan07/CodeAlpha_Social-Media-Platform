@@ -58,7 +58,7 @@ const API = `${API_URL}`;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 async function getToken() {
-  return auth.currentUser?.getIdToken(true);
+  return auth?.currentUser?.getIdToken(true);
 }
 
 const authHeaders = async () => ({
@@ -210,7 +210,7 @@ export default function Settings() {
     if (!pwForm.current) return toast.error('Enter your current password');
     if (pwForm.next.length < 6) return toast.error('New password must be at least 6 characters');
     if (pwForm.next !== pwForm.confirm) return toast.error('Passwords do not match');
-    const currentFbUser = auth.currentUser;
+    const currentFbUser = auth?.currentUser;
     if (!currentFbUser || !currentFbUser.email) return toast.error('Not authenticated');
     try {
       setPwSaving(true);
@@ -237,7 +237,7 @@ export default function Settings() {
   };
 
   const handleForgotPassword = async () => {
-    if (!user?.email) return;
+    if (!user?.email || !auth) return;
     try {
       await sendPasswordResetEmail(auth, user.email);
       toast.success(`Reset email sent to ${user.email}`);
@@ -329,7 +329,7 @@ export default function Settings() {
   // ── Delete Account ───────────────────────────────────────────────────────
   const handleDeleteAccount = async () => {
     if (!deletePassword) return toast.error('Enter your password to confirm');
-    const currentFbUser = auth.currentUser;
+    const currentFbUser = auth?.currentUser;
     if (!currentFbUser || !currentFbUser.email) return;
     try {
       setDeleting(true);

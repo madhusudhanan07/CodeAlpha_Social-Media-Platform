@@ -34,7 +34,7 @@ export default function Profile() {
     const fetchProfileData = async () => {
       if (!user || !targetUid) return;
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken();
         const headers = { Authorization: `Bearer ${token}` };
         
         const [profileRes, postsRes] = await Promise.all([
@@ -82,7 +82,7 @@ export default function Profile() {
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const token = await auth.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken();
       const headers = { Authorization: `Bearer ${token}` };
       const res = await axios.get(`${API_URL}/profile/posts?limit=10&offset=${nextPage * 10}${id ? `&userId=${id}` : ''}`, { headers });
       
@@ -159,7 +159,7 @@ export default function Profile() {
               <button 
                 onClick={async () => {
                   try {
-                    const token = await auth.currentUser?.getIdToken();
+                    const token = await auth?.currentUser?.getIdToken();
                     const res = await axios.post(`${API_URL}/follows/${targetUid}`, {}, { headers: { Authorization: `Bearer ${token}` } });
                     setIsFollowing(res.data.followed);
                     setFollowersCounter(prev => res.data.followed ? prev + 1 : Math.max(0, prev - 1));

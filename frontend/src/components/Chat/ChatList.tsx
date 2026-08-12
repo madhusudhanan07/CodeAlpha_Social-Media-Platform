@@ -20,7 +20,7 @@ export default function ChatList({ onSelect, onlineMap }: ChatListProps) {
 
   const fetchConversations = async () => {
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken();
       const res = await axios.get(`${API_URL}/chat`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -37,7 +37,7 @@ export default function ChatList({ onSelect, onlineMap }: ChatListProps) {
     }
     const search = async () => {
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken();
         const res = await axios.get(`${API_URL}/search/users?q=${searchQuery}`, {
           headers: { Authorization: `Bearer ${token}` }
         });

@@ -24,7 +24,7 @@ export default function RightSidebar() {
     const fetchSuggestions = async () => {
       if (!user) return;
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken();
         const res = await axios.get(`${API_URL}/follows/suggestions`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -38,7 +38,7 @@ export default function RightSidebar() {
 
   const handleFollow = async (userId: string) => {
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken();
       await axios.post(`${API_URL}/follows/${userId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });

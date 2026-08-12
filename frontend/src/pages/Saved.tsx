@@ -43,7 +43,7 @@ export default function Saved() {
   const modalInputRef = useRef<HTMLInputElement>(null);
 
   const getToken = useCallback(async () => {
-    return await auth.currentUser?.getIdToken(true);
+    return await auth?.currentUser?.getIdToken(true);
   }, []);
 
   const fetchData = useCallback(async () => {
