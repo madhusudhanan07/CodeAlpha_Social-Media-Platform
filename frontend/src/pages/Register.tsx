@@ -49,7 +49,9 @@ export default function Register() {
       navigate('/');
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/email-already-in-use') {
+      if (err.code === 'auth/network-request-failed') {
+        setError('Network Error: Unable to connect to the authentication server. Please check your internet connection, or try disabling ad blockers/VPNs.');
+      } else if (err.code === 'auth/email-already-in-use') {
         setError('This email is already registered.');
       } else if (err.code === 'auth/weak-password') {
         setError('Password should be at least 6 characters.');

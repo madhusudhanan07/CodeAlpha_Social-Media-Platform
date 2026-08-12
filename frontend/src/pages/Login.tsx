@@ -31,7 +31,16 @@ export default function Login() {
       // MainLayout ensures auth wrapper takes care of redirection dynamically if requested before
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Failed to login');
+      if (err.code === 'auth/network-request-failed') {
+        setError('Network Error: Unable to connect to the authentication server. Please check your internet connection, or try disabling ad blockers/VPNs.');
+      } else {
+        const msg = err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+          ? 'Invalid email or password'
+          : err.code === 'auth/too-many-requests'
+          ? 'Too many failed attempts. Please try again later.'
+          : err.message || 'Failed to login';
+        setError(msg);
+      }
     }
   };
 
