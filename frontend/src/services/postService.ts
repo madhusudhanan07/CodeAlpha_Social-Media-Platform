@@ -7,7 +7,7 @@ const LIKES_URL    = `${API_URL}/likes`;
 const COMMENTS_URL = `${API_URL}/comments`;
 
 export const getAuthToken = async () => {
-  if (auth.currentUser) {
+  if (auth && auth.currentUser) {
     return await auth.currentUser.getIdToken();
   }
   return null;
