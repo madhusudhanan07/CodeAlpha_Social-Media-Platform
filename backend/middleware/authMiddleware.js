@@ -1,6 +1,8 @@
 const { getAuth } = require("firebase-admin/auth");
-const db = require("../config/db");
+const { db } = require("../config/firebase");
 require("../config/firebase");
+
+const usersCol = db.collection('users');
 
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -16,19 +18,28 @@ const verifyToken = async (req, res, next) => {
   try {
     const decodedToken = await getAuth().verifyIdToken(token);
 
-    // Auto-sync user to MySQL to prevent Foreign Key errors
+    // Auto-sync user to Firestore to prevent missing-user errors
     try {
-      const [existing] = await db.execute('SELECT id FROM users WHERE firebase_uid = ?', [decodedToken.uid]);
-      if (existing.length === 0) {
+      const userRef = usersCol.doc(decodedToken.uid);
+      const userDoc = await userRef.get();
+      if (!userDoc.exists) {
         const email = decodedToken.email || 'no-email@unknown.com';
         const name = decodedToken.name || 'Unknown User';
         // Append part of UID to guarantee uniqueness for auto-synced users
         const username = email.split('@')[0] + '_' + decodedToken.uid.substring(0, 5);
-        
-        await db.execute(
-          `INSERT INTO users (firebase_uid, email, full_name, username) VALUES (?, ?, ?, ?)`,
-          [decodedToken.uid, email, name, username]
-        );
+
+        await userRef.set({
+          firebase_uid: decodedToken.uid,
+          email,
+          full_name: name,
+          username,
+          bio: '',
+          profile_picture: '',
+          cover_photo: null,
+          location: '',
+          website: '',
+          joined_date: new Date()
+        });
       }
     } catch (dbError) {
       console.error("Auto-sync user error:", dbError);

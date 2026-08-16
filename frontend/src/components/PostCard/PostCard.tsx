@@ -319,9 +319,9 @@ const PostCard = memo(({ post, onDelete, onUpdate, overrideSavedRemoval }: { pos
                    onError={(e) => handleAvatarError(e, c.displayName)}
                    style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
                  />
-                 <div style={{ background: 'var(--hover-bg, #f2f2f2)', padding: '10px 15px', borderRadius: '12px', flex: 1 }}>
+                 <div style={{ background: 'var(--hover-bg, #f2f2f2)', padding: '10px 15px', borderRadius: '12px', flex: 1, color: '#000' }}>
                    <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>{c.displayName}</div>
-                   <div style={{ fontSize: '14px', color: 'var(--text-primary)' }}>{c.content}</div>
+                   <div style={{ fontSize: '14px' }}>{c.content}</div>
                  </div>
                </div>
              ))}

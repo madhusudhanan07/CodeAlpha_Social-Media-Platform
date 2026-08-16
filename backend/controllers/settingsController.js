@@ -1,5 +1,19 @@
-const db = require('../config/db');
+const { db } = require('../config/firebase');
+const { FieldValue } = require('firebase-admin/firestore');
 const admin = require('firebase-admin');
+
+const usersCol = db.collection('users');
+const settingsCol = db.collection('settings');
+const postsCol = db.collection('posts');
+const commentsCol = db.collection('comments');
+const likesCol = db.collection('likes');
+const followsCol = db.collection('follows');
+const notificationsCol = db.collection('notifications');
+const savedPostsCol = db.collection('saved_posts');
+const savedCollectionsCol = db.collection('saved_collections');
+const friendsCol = db.collection('friends');
+const friendRequestsCol = db.collection('friend_requests');
+const conversationsCol = db.collection('conversations');
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const DEFAULT_PRIVACY = {
@@ -21,17 +35,24 @@ const DEFAULT_NOTIFICATIONS = {
 };
 
 async function upsertSettings(userId) {
-  // Returns row, creating defaults if missing
-  const [rows] = await db.execute('SELECT * FROM settings WHERE user_id = ?', [userId]);
-  if (rows.length > 0) return rows[0];
+  const settingsRef = settingsCol.doc(userId);
+  const settingsDoc = await settingsRef.get();
 
-  await db.execute(
-    `INSERT INTO settings (user_id, theme, language, font_size, privacy, notifications)
-     VALUES (?, 'system', 'en', 'medium', ?, ?)`,
-    [userId, JSON.stringify(DEFAULT_PRIVACY), JSON.stringify(DEFAULT_NOTIFICATIONS)]
-  );
-  const [newRows] = await db.execute('SELECT * FROM settings WHERE user_id = ?', [userId]);
-  return newRows[0];
+  if (settingsDoc.exists) return settingsDoc.data();
+
+  const defaults = {
+    user_id: userId,
+    theme: 'system',
+    language: 'en',
+    font_size: 'medium',
+    privacy: DEFAULT_PRIVACY,
+    notifications: DEFAULT_NOTIFICATIONS,
+    created_at: FieldValue.serverTimestamp(),
+    updated_at: FieldValue.serverTimestamp()
+  };
+
+  await settingsRef.set(defaults);
+  return { ...defaults, created_at: new Date(), updated_at: new Date() };
 }
 
 // ─── GET /api/settings ───────────────────────────────────────────────────────
@@ -41,11 +62,9 @@ exports.getSettings = async (req, res) => {
     const row = await upsertSettings(userId);
 
     // Also fetch user profile fields
-    const [users] = await db.execute(
-      'SELECT full_name, username, email, bio, profile_picture, cover_photo FROM users WHERE firebase_uid = ?',
-      [userId]
-    );
-    if (users.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
+    const userDoc = await usersCol.doc(userId).get();
+    if (!userDoc.exists) return res.status(404).json({ success: false, message: 'User not found' });
+    const userData = userDoc.data();
 
     res.json({
       success: true,
@@ -53,10 +72,17 @@ exports.getSettings = async (req, res) => {
         theme: row.theme,
         language: row.language,
         font_size: row.font_size,
-        privacy: typeof row.privacy === 'string' ? JSON.parse(row.privacy) : (row.privacy || DEFAULT_PRIVACY),
-        notifications: typeof row.notifications === 'string' ? JSON.parse(row.notifications) : (row.notifications || DEFAULT_NOTIFICATIONS),
+        privacy: row.privacy || DEFAULT_PRIVACY,
+        notifications: row.notifications || DEFAULT_NOTIFICATIONS,
       },
-      profile: users[0],
+      profile: {
+        full_name: userData.full_name || '',
+        username: userData.username || '',
+        email: userData.email || '',
+        bio: userData.bio || '',
+        profile_picture: userData.profile_picture || '',
+        cover_photo: userData.cover_photo || null
+      },
     });
   } catch (err) {
     console.error('getSettings error:', err);
@@ -81,18 +107,17 @@ exports.updateProfile = async (req, res) => {
     }
 
     // Uniqueness check (excluding current user)
-    const [taken] = await db.execute(
-      'SELECT id FROM users WHERE username = ? AND firebase_uid != ?',
-      [username.trim(), userId]
-    );
-    if (taken.length > 0) {
+    const takenSnap = await usersCol.where('username', '==', username.trim()).get();
+    const isTaken = takenSnap.docs.some(doc => doc.id !== userId);
+    if (isTaken) {
       return res.status(400).json({ success: false, message: 'Username is already taken' });
     }
 
-    await db.execute(
-      'UPDATE users SET full_name = ?, username = ?, bio = ? WHERE firebase_uid = ?',
-      [full_name?.trim() || '', username.trim(), bio?.trim() || '', userId]
-    );
+    await usersCol.doc(userId).update({
+      full_name: full_name?.trim() || '',
+      username: username.trim(),
+      bio: bio?.trim() || ''
+    });
 
     res.json({ success: true, message: 'Profile updated' });
   } catch (err) {
@@ -122,10 +147,10 @@ exports.updatePrivacy = async (req, res) => {
     const userId = req.user.uid;
     const merged = { ...DEFAULT_PRIVACY, ...req.body };
 
-    await db.execute(
-      'UPDATE settings SET privacy = ? WHERE user_id = ?',
-      [JSON.stringify(merged), userId]
-    );
+    await settingsCol.doc(userId).update({
+      privacy: merged,
+      updated_at: FieldValue.serverTimestamp()
+    });
     res.json({ success: true, message: 'Privacy settings saved', privacy: merged });
   } catch (err) {
     console.error('settings/updatePrivacy error:', err);
@@ -139,10 +164,10 @@ exports.updateNotifications = async (req, res) => {
     const userId = req.user.uid;
     const merged = { ...DEFAULT_NOTIFICATIONS, ...req.body };
 
-    await db.execute(
-      'UPDATE settings SET notifications = ? WHERE user_id = ?',
-      [JSON.stringify(merged), userId]
-    );
+    await settingsCol.doc(userId).update({
+      notifications: merged,
+      updated_at: FieldValue.serverTimestamp()
+    });
     res.json({ success: true, message: 'Notification settings saved', notifications: merged });
   } catch (err) {
     console.error('settings/updateNotifications error:', err);
@@ -166,14 +191,12 @@ exports.updateTheme = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid font_size' });
     }
 
-    await db.execute(
-      `UPDATE settings SET
-        theme      = COALESCE(?, theme),
-        language   = COALESCE(?, language),
-        font_size  = COALESCE(?, font_size)
-       WHERE user_id = ?`,
-      [theme || null, language || null, font_size || null, userId]
-    );
+    const updateData = { updated_at: FieldValue.serverTimestamp() };
+    if (theme) updateData.theme = theme;
+    if (language) updateData.language = language;
+    if (font_size) updateData.font_size = font_size;
+
+    await settingsCol.doc(userId).update(updateData);
 
     res.json({ success: true, message: 'Appearance saved' });
   } catch (err) {
@@ -187,23 +210,56 @@ exports.exportData = async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    const [[profile]]   = await db.execute('SELECT full_name, username, email, bio, profile_picture, joined_date FROM users WHERE firebase_uid = ?', [userId]);
-    const [posts]       = await db.execute('SELECT id, content, image_url, created_at FROM posts WHERE user_id = ?', [userId]);
-    const [comments]    = await db.execute('SELECT id, post_id, content, created_at FROM comments WHERE user_id = ?', [userId]);
-    const [likes]       = await db.execute('SELECT post_id, created_at FROM likes WHERE user_id = ?', [userId]);
-    const [friends]     = await db.execute('SELECT friend_id, created_at FROM friends WHERE user_id = ?', [userId]).catch(() => [[], []]);
-    const [messages]    = await db.execute('SELECT id, conversation_id, message, created_at FROM messages WHERE sender_id = ?', [userId]).catch(() => [[], []]);
-    const [notifs]      = await db.execute('SELECT id, type, message, is_read, created_at FROM notifications WHERE user_id = ?', [userId]).catch(() => [[], []]);
-    const [savedPosts]  = await db.execute('SELECT post_id, created_at FROM saved_posts WHERE user_id = ?', [userId]);
+    const userDoc = await usersCol.doc(userId).get();
+    const profile = userDoc.exists ? userDoc.data() : {};
+    // Clean up profile for export
+    const exportProfile = {
+      full_name: profile.full_name || '',
+      username: profile.username || '',
+      email: profile.email || '',
+      bio: profile.bio || '',
+      profile_picture: profile.profile_picture || '',
+      joined_date: profile.joined_date ? (profile.joined_date.toDate ? profile.joined_date.toDate() : profile.joined_date) : null
+    };
+
+    const postsSnap = await postsCol.where('user_id', '==', userId).get();
+    const posts = postsSnap.docs.map(d => {
+      const data = d.data();
+      return { id: d.id, content: data.content, image_url: data.image_url, created_at: data.created_at ? data.created_at.toDate() : null };
+    });
+
+    const commentsSnap = await commentsCol.where('user_id', '==', userId).get();
+    const comments = commentsSnap.docs.map(d => {
+      const data = d.data();
+      return { id: d.id, post_id: data.post_id, content: data.content, created_at: data.created_at ? data.created_at.toDate() : null };
+    });
+
+    const likesSnap = await likesCol.where('user_id', '==', userId).get();
+    const likes = likesSnap.docs.map(d => {
+      const data = d.data();
+      return { post_id: data.post_id, created_at: data.created_at ? data.created_at.toDate() : null };
+    });
+
+    const notifsSnap = await notificationsCol.where('user_id', '==', userId).get();
+    const notifs = notifsSnap.docs.map(d => {
+      const data = d.data();
+      return { id: d.id, type: data.type, message: data.message, is_read: data.is_read, created_at: data.created_at ? data.created_at.toDate() : null };
+    });
+
+    const savedSnap = await savedPostsCol.where('user_id', '==', userId).get();
+    const savedPosts = savedSnap.docs.map(d => {
+      const data = d.data();
+      return { post_id: data.post_id, created_at: data.created_at ? data.created_at.toDate() : null };
+    });
 
     const data = {
       exported_at: new Date().toISOString(),
-      profile,
+      profile: exportProfile,
       posts,
       comments,
       likes,
-      friends,
-      messages,
+      friends: [],
+      messages: [],
       notifications: notifs,
       saved_posts: savedPosts,
     };
@@ -222,19 +278,71 @@ exports.deleteAccount = async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    // Delete all user data in dependency order
-    await db.execute('DELETE FROM saved_posts      WHERE user_id = ?', [userId]);
-    await db.execute('DELETE FROM saved_collections WHERE user_id = ?', [userId]);
-    await db.execute('DELETE FROM notifications    WHERE user_id = ?', [userId]);
-    await db.execute('DELETE FROM messages         WHERE sender_id = ?', [userId]).catch(() => {});
-    await db.execute('DELETE FROM likes             WHERE user_id = ?', [userId]);
-    await db.execute('DELETE FROM comments          WHERE user_id = ?', [userId]);
-    await db.execute('DELETE FROM follows           WHERE follower_id = ? OR following_id = ?', [userId, userId]).catch(() => {});
-    await db.execute('DELETE FROM friend_requests   WHERE sender_id = ? OR receiver_id = ?', [userId, userId]).catch(() => {});
-    await db.execute('DELETE FROM friends           WHERE user_id = ? OR friend_id = ?', [userId, userId]).catch(() => {});
-    await db.execute('DELETE FROM posts             WHERE user_id = ?', [userId]);
-    await db.execute('DELETE FROM settings          WHERE user_id = ?', [userId]);
-    await db.execute('DELETE FROM users             WHERE firebase_uid = ?', [userId]);
+    // Delete saved posts
+    const savedSnap = await savedPostsCol.where('user_id', '==', userId).get();
+    const batch1 = db.batch();
+    savedSnap.docs.forEach(doc => batch1.delete(doc.ref));
+    if (!savedSnap.empty) await batch1.commit();
+
+    // Delete saved collections
+    const colSnap = await savedCollectionsCol.where('user_id', '==', userId).get();
+    const batch2 = db.batch();
+    colSnap.docs.forEach(doc => batch2.delete(doc.ref));
+    if (!colSnap.empty) await batch2.commit();
+
+    // Delete notifications
+    const notifSnap = await notificationsCol.where('user_id', '==', userId).get();
+    const batch3 = db.batch();
+    notifSnap.docs.forEach(doc => batch3.delete(doc.ref));
+    if (!notifSnap.empty) await batch3.commit();
+
+    // Delete likes
+    const likesSnap = await likesCol.where('user_id', '==', userId).get();
+    const batch4 = db.batch();
+    likesSnap.docs.forEach(doc => batch4.delete(doc.ref));
+    if (!likesSnap.empty) await batch4.commit();
+
+    // Delete comments
+    const commentsSnap = await commentsCol.where('user_id', '==', userId).get();
+    const batch5 = db.batch();
+    commentsSnap.docs.forEach(doc => batch5.delete(doc.ref));
+    if (!commentsSnap.empty) await batch5.commit();
+
+    // Delete follows (both directions)
+    const followSnap1 = await followsCol.where('follower_id', '==', userId).get();
+    const followSnap2 = await followsCol.where('following_id', '==', userId).get();
+    const batch6 = db.batch();
+    followSnap1.docs.forEach(doc => batch6.delete(doc.ref));
+    followSnap2.docs.forEach(doc => batch6.delete(doc.ref));
+    if (!followSnap1.empty || !followSnap2.empty) await batch6.commit();
+
+    // Delete friend requests
+    const frSnap1 = await friendRequestsCol.where('sender_id', '==', userId).get();
+    const frSnap2 = await friendRequestsCol.where('receiver_id', '==', userId).get();
+    const batch7 = db.batch();
+    frSnap1.docs.forEach(doc => batch7.delete(doc.ref));
+    frSnap2.docs.forEach(doc => batch7.delete(doc.ref));
+    if (!frSnap1.empty || !frSnap2.empty) await batch7.commit();
+
+    // Delete friends
+    const friendSnap1 = await friendsCol.where('user1_id', '==', userId).get();
+    const friendSnap2 = await friendsCol.where('user2_id', '==', userId).get();
+    const batch8 = db.batch();
+    friendSnap1.docs.forEach(doc => batch8.delete(doc.ref));
+    friendSnap2.docs.forEach(doc => batch8.delete(doc.ref));
+    if (!friendSnap1.empty || !friendSnap2.empty) await batch8.commit();
+
+    // Delete posts
+    const postsSnap = await postsCol.where('user_id', '==', userId).get();
+    const batch9 = db.batch();
+    postsSnap.docs.forEach(doc => batch9.delete(doc.ref));
+    if (!postsSnap.empty) await batch9.commit();
+
+    // Delete settings
+    await settingsCol.doc(userId).delete().catch(() => {});
+
+    // Delete user document
+    await usersCol.doc(userId).delete();
 
     // Delete from Firebase Auth
     try {

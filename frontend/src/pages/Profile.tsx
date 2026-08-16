@@ -31,8 +31,12 @@ export default function Profile() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchProfileData = async () => {
-      if (!user || !targetUid) return;
+      if (!user || !targetUid) {
+        if (isMounted) setLoading(false);
+        return;
+      }
       try {
         const token = await auth?.currentUser?.getIdToken();
         const headers = { Authorization: `Bearer ${token}` };
@@ -42,40 +46,46 @@ export default function Profile() {
           axios.get(`${API_URL}/profile/posts?limit=10&offset=0${id ? `&userId=${id}` : ''}`, { headers })
         ]);
         
-        setProfile(profileRes.data.profile);
-        setFollowingCounter(profileRes.data.profile.following);
-        setFollowersCounter(profileRes.data.profile.followers);
-        setIsFollowing(profileRes.data.profile.is_following_current || false); // Backend should return this if we add it, else we fetch individually. Wait, we can fetch follows/suggestions later, or assume backend modifies.
-        
-        // Transform posts to match PostProps
-        const fetchedPosts: PostProps[] = postsRes.data.posts.map((p: any) => ({
-          id: p.id,
-          user_id: p.user_id,
-          userAvatar: p.user_avatar ? `${BASE_URL}${p.user_avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
-          username: p.username,
-          time: new Date(p.created_at).toLocaleString(),
-          content: p.content,
-          image: p.image_url ? `${BASE_URL}${p.image_url}` : undefined,
-          likes: p.likes_count || 0,
-          comments: p.comments_count || 0,
-          isLikedByCurrentUser: p.is_liked_by_current_user || false
-        }));
+        if (isMounted) {
+          setProfile(profileRes.data.profile);
+          setFollowingCounter(profileRes.data.profile.following);
+          setFollowersCounter(profileRes.data.profile.followers);
+          setIsFollowing(profileRes.data.profile.is_following_current || false); 
+          
+          const fetchedPosts: PostProps[] = postsRes.data.posts.map((p: any) => ({
+            id: p.id,
+            user_id: p.user_id,
+            userAvatar: p.user_avatar ? `${BASE_URL}${p.user_avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.username)}`,
+            username: p.username,
+            time: new Date(p.created_at).toLocaleString(),
+            content: p.content,
+            image: p.image_url ? `${BASE_URL}${p.image_url}` : undefined,
+            likes: p.likes_count || 0,
+            comments: p.comments_count || 0,
+            isLikedByCurrentUser: p.is_liked_by_current_user || false
+          }));
 
-        setPosts(fetchedPosts);
-        if (fetchedPosts.length < 10) setHasMore(false);
+          setPosts(fetchedPosts);
+          if (fetchedPosts.length < 10) setHasMore(false);
+        }
       } catch (err: any) {
-        if (err.response && err.response.status === 404) {
-          navigate('/profile/edit');
-        } else {
-          setError(err.response?.data?.message || err.message || 'Failed to fetch profile data');
+        if (isMounted) {
+          if (err.response && err.response.status === 404) {
+            navigate('/profile/edit');
+          } else {
+            setError(err.response?.data?.message || err.message || 'Failed to fetch profile data');
+          }
         }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchProfileData();
-  }, [user, navigate]);
+    return () => {
+      isMounted = false;
+    };
+  }, [user, navigate, id, targetUid]);
 
   const loadMorePosts = async () => {
     if (!hasMore || loadingMore || !user || !targetUid) return;

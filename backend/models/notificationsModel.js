@@ -1,32 +1,50 @@
-const db = require('../config/db');
+const { db } = require('../config/firebase');
+const { FieldValue } = require('firebase-admin/firestore');
+
+const notificationsCol = db.collection('notifications');
+const usersCol = db.collection('users');
 
 class NotificationsModel {
   static async createNotification(userId, senderId, type, referenceId = null, message = null) {
     if (userId === senderId) return null; // Don't notify oneself
-    
-    // Check if duplicate notification exists
-    const checkQuery = `
-      SELECT id FROM notifications 
-      WHERE user_id = ? AND sender_id = ? AND type = ? AND (reference_id = ? OR reference_id IS NULL)
-    `;
-    const [existing] = await db.execute(checkQuery, [userId, senderId, type, referenceId]);
-    if (existing.length > 0) return null;
 
-    const query = `
-      INSERT INTO notifications (user_id, sender_id, type, reference_id, message)
-      VALUES (?, ?, ?, ?, ?)
-    `;
-    const [result] = await db.execute(query, [userId, senderId, type, referenceId, message]);
+    // Check if duplicate notification exists
+    let query = notificationsCol
+      .where('user_id', '==', userId)
+      .where('sender_id', '==', senderId)
+      .where('type', '==', type);
+
+    if (referenceId) {
+      query = query.where('reference_id', '==', String(referenceId));
+    }
+
+    const existingSnap = await query.limit(1).get();
+    if (!existingSnap.empty) return null;
+
+    const notifData = {
+      user_id: userId,
+      sender_id: senderId,
+      type,
+      reference_id: referenceId ? String(referenceId) : null,
+      message: message || null,
+      is_read: false,
+      created_at: FieldValue.serverTimestamp()
+    };
+
+    const notifRef = await notificationsCol.add(notifData);
 
     // Construct the notification object for socket io
-    const [inserted] = await db.execute(`
-      SELECT n.*, u.username as sender_username, u.full_name as sender_name, u.profile_picture as sender_avatar
-      FROM notifications n
-      LEFT JOIN users u ON n.sender_id = u.firebase_uid
-      WHERE n.id = ?
-    `, [result.insertId]);
+    const userDoc = await usersCol.doc(senderId).get();
+    const sender = userDoc.exists ? userDoc.data() : {};
 
-    const notification = inserted[0];
+    const notification = {
+      id: notifRef.id,
+      ...notifData,
+      created_at: new Date(),
+      sender_username: sender.username || '',
+      sender_name: sender.full_name || '',
+      sender_avatar: sender.profile_picture || ''
+    };
 
     // Emit Socket
     const { getIo, getConnectedUsers } = require('../config/socket');
@@ -39,36 +57,55 @@ class NotificationsModel {
       }
     }
 
-    return result.insertId;
+    return notifRef.id;
   }
 
   static async getNotifications(userId) {
-    const query = `
-      SELECT 
-        n.id, 
-        n.type, 
-        n.reference_id, 
-        n.message,
-        n.is_read, 
-        n.created_at,
-        u.firebase_uid as sender_id,
-        u.username as sender_username,
-        u.full_name as sender_name,
-        u.profile_picture as sender_avatar
-      FROM notifications n
-      JOIN users u ON n.sender_id = u.firebase_uid
-      WHERE n.user_id = ?
-      ORDER BY n.created_at DESC
-      LIMIT 50
-    `;
-    const [rows] = await db.execute(query, [userId]);
-    return rows;
+    const snapshot = await notificationsCol
+      .where('user_id', '==', userId)
+      .orderBy('created_at', 'desc')
+      .limit(50)
+      .get();
+
+    const notifications = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const senderDoc = await usersCol.doc(data.sender_id).get();
+        const sender = senderDoc.exists ? senderDoc.data() : {};
+
+        return {
+          id: doc.id,
+          type: data.type,
+          reference_id: data.reference_id || null,
+          message: data.message || null,
+          is_read: data.is_read || false,
+          created_at: data.created_at ? data.created_at.toDate() : new Date(),
+          sender_id: data.sender_id,
+          sender_username: sender.username || '',
+          sender_name: sender.full_name || '',
+          sender_avatar: sender.profile_picture || ''
+        };
+      })
+    );
+
+    return notifications;
   }
 
   static async markAsRead(userId) {
-    const query = `UPDATE notifications SET is_read = TRUE WHERE user_id = ?`;
-    const [result] = await db.execute(query, [userId]);
-    return result.affectedRows;
+    const snapshot = await notificationsCol
+      .where('user_id', '==', userId)
+      .where('is_read', '==', false)
+      .get();
+
+    if (snapshot.empty) return 0;
+
+    const batch = db.batch();
+    snapshot.docs.forEach(doc => {
+      batch.update(doc.ref, { is_read: true });
+    });
+    await batch.commit();
+
+    return snapshot.docs.length;
   }
 }
 

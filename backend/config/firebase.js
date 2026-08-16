@@ -1,4 +1,6 @@
 const { initializeApp, cert, getApps } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
 
 let serviceAccount;
 
@@ -29,4 +31,8 @@ const app = getApps().length === 0
   ? initializeApp({ credential: cert(serviceAccount) })
   : getApps()[0];
 
-module.exports = app;
+// Export Firestore database instance and Admin Auth
+const db = getFirestore(app);
+const adminAuth = getAuth(app);
+
+module.exports = { app, db, adminAuth };

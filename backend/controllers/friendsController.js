@@ -1,5 +1,10 @@
-const db = require('../config/db');
+const { db } = require('../config/firebase');
+const { FieldValue } = require('firebase-admin/firestore');
 const NotificationsModel = require('../models/notificationsModel');
+
+const friendRequestsCol = db.collection('friend_requests');
+const friendsCol = db.collection('friends');
+const usersCol = db.collection('users');
 
 exports.sendRequest = async (req, res) => {
   try {
@@ -10,29 +15,31 @@ exports.sendRequest = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cannot send request to yourself.' });
     }
 
-    // Check if friends already
-    const [existingFriends] = await db.execute(`
-      SELECT * FROM friends 
-      WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
-    `, [senderId, receiverId, receiverId, senderId]);
-
-    if (existingFriends.length > 0) {
+    // Check if friends already (sorted composite ID)
+    const [u1, u2] = senderId < receiverId ? [senderId, receiverId] : [receiverId, senderId];
+    const friendDoc = await friendsCol.doc(`${u1}_${u2}`).get();
+    if (friendDoc.exists) {
       return res.status(400).json({ success: false, message: 'Already friends.' });
     }
 
-    // Check existing request
-    const [existingReq] = await db.execute(`
-      SELECT * FROM friend_requests 
-      WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
-    `, [senderId, receiverId, receiverId, senderId]);
+    // Check existing request (either direction)
+    const reqId1 = `${senderId}_${receiverId}`;
+    const reqId2 = `${receiverId}_${senderId}`;
+    const [req1, req2] = await Promise.all([
+      friendRequestsCol.doc(reqId1).get(),
+      friendRequestsCol.doc(reqId2).get()
+    ]);
 
-    if (existingReq.length > 0) {
+    if (req1.exists || req2.exists) {
       return res.status(200).json({ success: true, message: 'Friend request already sent.' });
     }
 
-    await db.execute(`
-      INSERT INTO friend_requests (sender_id, receiver_id) VALUES (?, ?)
-    `, [senderId, receiverId]);
+    await friendRequestsCol.doc(reqId1).set({
+      sender_id: senderId,
+      receiver_id: receiverId,
+      status: 'pending',
+      created_at: FieldValue.serverTimestamp()
+    });
 
     await NotificationsModel.createNotification(receiverId, senderId, 'FRIEND_REQUEST');
 
@@ -48,39 +55,34 @@ exports.acceptRequest = async (req, res) => {
     const userId = req.user.uid;
     const requestId = req.params.requestId;
 
-    const [requests] = await db.execute(`
-      SELECT * FROM friend_requests WHERE id = ? AND receiver_id = ? AND status = 'pending'
-    `, [requestId, userId]);
+    const reqRef = friendRequestsCol.doc(requestId);
+    const reqDoc = await reqRef.get();
 
-    if (requests.length === 0) {
+    if (!reqDoc.exists || reqDoc.data().receiver_id !== userId || reqDoc.data().status !== 'pending') {
       return res.status(404).json({ success: false, message: 'Request not found or already processed.' });
     }
 
-    const senderId = requests[0].sender_id;
+    const senderId = reqDoc.data().sender_id;
 
-    const connection = await db.getConnection();
-    try {
-      await connection.beginTransaction();
+    // Use Firestore batch (atomic)
+    const batch = db.batch();
 
-      await connection.execute(`
-        UPDATE friend_requests SET status = 'accepted' WHERE id = ?
-      `, [requestId]);
+    // Update request status
+    batch.update(reqRef, { status: 'accepted' });
 
-      await connection.execute(`
-        INSERT INTO friends (user1_id, user2_id) VALUES (?, ?)
-      `, [senderId, userId]);
+    // Create friendship (sorted composite ID)
+    const [u1, u2] = senderId < userId ? [senderId, userId] : [userId, senderId];
+    batch.set(friendsCol.doc(`${u1}_${u2}`), {
+      user1_id: u1,
+      user2_id: u2,
+      created_at: FieldValue.serverTimestamp()
+    });
 
-      await connection.commit();
-      connection.release();
+    await batch.commit();
 
-      await NotificationsModel.createNotification(senderId, userId, 'FRIEND_ACCEPTED');
+    await NotificationsModel.createNotification(senderId, userId, 'FRIEND_ACCEPTED');
 
-      res.status(200).json({ success: true, message: 'Request accepted.' });
-    } catch (e) {
-      await connection.rollback();
-      connection.release();
-      throw e;
-    }
+    res.status(200).json({ success: true, message: 'Request accepted.' });
   } catch (error) {
     console.error('acceptRequest error', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -92,9 +94,12 @@ exports.rejectRequest = async (req, res) => {
     const userId = req.user.uid;
     const requestId = req.params.requestId;
 
-    await db.execute(`
-      DELETE FROM friend_requests WHERE id = ? AND receiver_id = ?
-    `, [requestId, userId]);
+    const reqRef = friendRequestsCol.doc(requestId);
+    const reqDoc = await reqRef.get();
+
+    if (reqDoc.exists && reqDoc.data().receiver_id === userId) {
+      await reqRef.delete();
+    }
 
     res.status(200).json({ success: true, message: 'Request rejected/removed.' });
   } catch (error) {
@@ -108,16 +113,17 @@ exports.removeFriend = async (req, res) => {
     const userId = req.user.uid;
     const friendId = req.params.friendId;
 
-    await db.execute(`
-      DELETE FROM friends 
-      WHERE (user1_id = ? AND user2_id = ?) OR (user1_id = ? AND user2_id = ?)
-    `, [userId, friendId, friendId, userId]);
+    // Delete friendship (sorted composite ID)
+    const [u1, u2] = userId < friendId ? [userId, friendId] : [friendId, userId];
+    await friendsCol.doc(`${u1}_${u2}`).delete();
 
-    // Also delete any existing requests between them to clean up state
-    await db.execute(`
-      DELETE FROM friend_requests 
-      WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
-    `, [userId, friendId, friendId, userId]);
+    // Delete any existing requests between them
+    const reqId1 = `${userId}_${friendId}`;
+    const reqId2 = `${friendId}_${userId}`;
+    await Promise.all([
+      friendRequestsCol.doc(reqId1).delete().catch(() => {}),
+      friendRequestsCol.doc(reqId2).delete().catch(() => {})
+    ]);
 
     res.status(200).json({ success: true, message: 'Friend removed.' });
   } catch (error) {
@@ -130,25 +136,45 @@ exports.getFriendsList = async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    const [friends] = await db.execute(`
-      SELECT 
-        u.firebase_uid as id, 
-        u.username, 
-        u.full_name as displayName, 
-        u.profile_picture as avatar, 
-        (
-          SELECT COUNT(*) 
-          FROM friends f1 
-          JOIN friends f2 ON 
-            (f1.user1_id = u.firebase_uid AND f2.user1_id = ? AND f1.user2_id = f2.user2_id) OR
-            (f1.user1_id = u.firebase_uid AND f2.user2_id = ? AND f1.user2_id = f2.user1_id) OR
-            (f1.user2_id = u.firebase_uid AND f2.user1_id = ? AND f1.user1_id = f2.user2_id) OR
-            (f1.user2_id = u.firebase_uid AND f2.user2_id = ? AND f1.user1_id = f2.user1_id)
-        ) as mutualFriends
-      FROM friends f
-      JOIN users u ON (u.firebase_uid = f.user1_id OR u.firebase_uid = f.user2_id)
-      WHERE (f.user1_id = ? OR f.user2_id = ?) AND u.firebase_uid != ?
-    `, [userId, userId, userId, userId, userId, userId, userId]);
+    // Query friends where user is either user1 or user2
+    const [snap1, snap2] = await Promise.all([
+      friendsCol.where('user1_id', '==', userId).get(),
+      friendsCol.where('user2_id', '==', userId).get()
+    ]);
+
+    const friendIds = new Set();
+    snap1.docs.forEach(d => friendIds.add(d.data().user2_id));
+    snap2.docs.forEach(d => friendIds.add(d.data().user1_id));
+
+    const friends = await Promise.all(
+      Array.from(friendIds).map(async (fId) => {
+        const userDoc = await usersCol.doc(fId).get();
+        const u = userDoc.exists ? userDoc.data() : {};
+
+        // Compute mutual friends (simplified: count friends-of-friend that are also my friends)
+        const [fSnap1, fSnap2] = await Promise.all([
+          friendsCol.where('user1_id', '==', fId).get(),
+          friendsCol.where('user2_id', '==', fId).get()
+        ]);
+        const theirFriends = new Set();
+        fSnap1.docs.forEach(d => theirFriends.add(d.data().user2_id));
+        fSnap2.docs.forEach(d => theirFriends.add(d.data().user1_id));
+        theirFriends.delete(userId);
+
+        let mutualCount = 0;
+        for (const tf of theirFriends) {
+          if (friendIds.has(tf)) mutualCount++;
+        }
+
+        return {
+          id: fId,
+          username: u.username || '',
+          displayName: u.full_name || '',
+          avatar: u.profile_picture || '',
+          mutualFriends: mutualCount
+        };
+      })
+    );
 
     res.status(200).json({ success: true, friends });
   } catch (error) {
@@ -161,17 +187,26 @@ exports.getFriendRequests = async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    const [requests] = await db.execute(`
-      SELECT 
-        fr.id as requestId, 
-        u.firebase_uid as senderId, 
-        u.username, 
-        u.full_name as displayName, 
-        u.profile_picture as avatar
-      FROM friend_requests fr
-      JOIN users u ON fr.sender_id = u.firebase_uid
-      WHERE fr.receiver_id = ? AND fr.status = 'pending'
-    `, [userId]);
+    const snapshot = await friendRequestsCol
+      .where('receiver_id', '==', userId)
+      .where('status', '==', 'pending')
+      .get();
+
+    const requests = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const senderDoc = await usersCol.doc(data.sender_id).get();
+        const sender = senderDoc.exists ? senderDoc.data() : {};
+
+        return {
+          requestId: doc.id,
+          senderId: data.sender_id,
+          username: sender.username || '',
+          displayName: sender.full_name || '',
+          avatar: sender.profile_picture || ''
+        };
+      })
+    );
 
     res.status(200).json({ success: true, requests });
   } catch (error) {
@@ -184,23 +219,40 @@ exports.getSuggestions = async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    // Get suggestions: users not already friends, and no pending requests
-    const [suggestions] = await db.execute(`
-      SELECT u.firebase_uid as id, u.username, u.full_name as displayName, u.profile_picture as avatar
-      FROM users u
-      WHERE u.firebase_uid != ?
-      AND u.firebase_uid NOT IN (
-        SELECT user1_id FROM friends WHERE user2_id = ?
-        UNION
-        SELECT user2_id FROM friends WHERE user1_id = ?
-      )
-      AND u.firebase_uid NOT IN (
-        SELECT receiver_id FROM friend_requests WHERE sender_id = ?
-        UNION
-        SELECT sender_id FROM friend_requests WHERE receiver_id = ?
-      )
-      LIMIT 10
-    `, [userId, userId, userId, userId, userId]);
+    // Get current friends
+    const [fSnap1, fSnap2] = await Promise.all([
+      friendsCol.where('user1_id', '==', userId).get(),
+      friendsCol.where('user2_id', '==', userId).get()
+    ]);
+    const friendIds = new Set();
+    fSnap1.docs.forEach(d => friendIds.add(d.data().user2_id));
+    fSnap2.docs.forEach(d => friendIds.add(d.data().user1_id));
+
+    // Get pending requests
+    const [rSnap1, rSnap2] = await Promise.all([
+      friendRequestsCol.where('sender_id', '==', userId).get(),
+      friendRequestsCol.where('receiver_id', '==', userId).get()
+    ]);
+    const requestIds = new Set();
+    rSnap1.docs.forEach(d => requestIds.add(d.data().receiver_id));
+    rSnap2.docs.forEach(d => requestIds.add(d.data().sender_id));
+
+    const excludeIds = new Set([...friendIds, ...requestIds, userId]);
+
+    // Get users and filter
+    const usersSnap = await usersCol.limit(50).get();
+    const suggestions = usersSnap.docs
+      .filter(doc => !excludeIds.has(doc.id))
+      .slice(0, 10)
+      .map(doc => {
+        const u = doc.data();
+        return {
+          id: doc.id,
+          username: u.username || '',
+          displayName: u.full_name || '',
+          avatar: u.profile_picture || ''
+        };
+      });
 
     res.status(200).json({ success: true, suggestions });
   } catch (error) {
@@ -212,21 +264,35 @@ exports.getSuggestions = async (req, res) => {
 exports.searchFriends = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const q = req.query.q || '';
+    const q = (req.query.q || '').toLowerCase();
 
-    // Search only within my friends
-    const [friends] = await db.execute(`
-      SELECT 
-        u.firebase_uid as id, 
-        u.username, 
-        u.full_name as displayName, 
-        u.profile_picture as avatar
-      FROM friends f
-      JOIN users u ON (u.firebase_uid = f.user1_id OR u.firebase_uid = f.user2_id)
-      WHERE (f.user1_id = ? OR f.user2_id = ?) 
-      AND u.firebase_uid != ?
-      AND (u.username LIKE ? OR u.full_name LIKE ?)
-    `, [userId, userId, userId, `%${q}%`, `%${q}%`]);
+    // Get current friends
+    const [fSnap1, fSnap2] = await Promise.all([
+      friendsCol.where('user1_id', '==', userId).get(),
+      friendsCol.where('user2_id', '==', userId).get()
+    ]);
+    const friendIds = new Set();
+    fSnap1.docs.forEach(d => friendIds.add(d.data().user2_id));
+    fSnap2.docs.forEach(d => friendIds.add(d.data().user1_id));
+
+    // Fetch friend profiles and filter by search term
+    const friends = [];
+    for (const fId of friendIds) {
+      const userDoc = await usersCol.doc(fId).get();
+      if (!userDoc.exists) continue;
+      const u = userDoc.data();
+      const username = (u.username || '').toLowerCase();
+      const fullName = (u.full_name || '').toLowerCase();
+
+      if (username.includes(q) || fullName.includes(q)) {
+        friends.push({
+          id: fId,
+          username: u.username || '',
+          displayName: u.full_name || '',
+          avatar: u.profile_picture || ''
+        });
+      }
+    }
 
     res.status(200).json({ success: true, friends });
   } catch (error) {

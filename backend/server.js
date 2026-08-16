@@ -3,7 +3,8 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-const db = require('./config/db');
+// Initialize Firebase (Firestore + Auth)
+const { db, adminAuth } = require('./config/firebase');
 
 const app = express();
 
@@ -73,32 +74,28 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+  // Verify Firestore connection (non-fatal — server starts regardless)
+  console.log('🔄 Connecting to Firebase Firestore...');
   try {
-    // Test MySQL Connection
-    const connection = await db.getConnection();
-    console.log('✅ MySQL Connected Successfully');
-    connection.release();
-
-    // Auto-initialize DB tables
-    const initDbTables = require('./utils/initDbTables');
-    await initDbTables();
-
-    const http = require('http');
-    const { initSocket } = require('./config/socket');
-    
-    // Create HTTP server manually so Socket.io can attach to it
-    const server = http.createServer(app);
-    initSocket(server);
-
-    server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`🌐 http://localhost:${PORT}`);
-    });
+    await db.listCollections();
+    console.log('✅ Firebase Firestore Connected Successfully');
   } catch (err) {
-    console.error('❌ Failed to connect to MySQL');
-    console.error(err.message);
-    process.exit(1);
+    console.warn('⚠️ Firebase Firestore connection check failed:', err.message);
+    console.warn('   The server will start, but API calls may fail if credentials are invalid.');
+    console.warn('   If you see UNAUTHENTICATED errors, regenerate your serviceAccountKey.json from Firebase Console.');
   }
+
+  const http = require('http');
+  const { initSocket } = require('./config/socket');
+  
+  // Create HTTP server manually so Socket.io can attach to it
+  const server = http.createServer(app);
+  initSocket(server);
+
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌐 http://localhost:${PORT}`);
+  });
 }
 
 startServer();

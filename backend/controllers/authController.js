@@ -1,4 +1,6 @@
-const db = require("../config/db");
+const { db } = require("../config/firebase");
+
+const usersCol = db.collection('users');
 
 exports.registerUser = async (req, res) => {
     try {
@@ -6,13 +8,21 @@ exports.registerUser = async (req, res) => {
 
         const { firebase_uid, email, full_name, username } = req.body;
 
-        const [result] = await db.execute(
-            `INSERT INTO users (firebase_uid, email, full_name, username)
-             VALUES (?, ?, ?, ?)`,
-            [firebase_uid, email, full_name, username]
-        );
+        const userRef = usersCol.doc(firebase_uid);
+        await userRef.set({
+            firebase_uid,
+            email,
+            full_name,
+            username,
+            bio: '',
+            profile_picture: '',
+            cover_photo: null,
+            location: '',
+            website: '',
+            joined_date: new Date()
+        });
 
-        console.log("✅ Insert Success:", result);
+        console.log("✅ User Registered in Firestore:", firebase_uid);
 
         res.status(201).json({
             success: true,

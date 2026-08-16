@@ -1,4 +1,13 @@
-const db = require('../config/db');
+const { db } = require('../config/firebase');
+const { FieldValue } = require('firebase-admin/firestore');
+
+const savedPostsCol = db.collection('saved_posts');
+const savedCollectionsCol = db.collection('saved_collections');
+const postsCol = db.collection('posts');
+const usersCol = db.collection('users');
+const likesCol = db.collection('likes');
+const commentsCol = db.collection('comments');
+const postImagesCol = db.collection('post_images');
 
 // Save a post
 exports.savePost = async (req, res) => {
@@ -8,17 +17,20 @@ exports.savePost = async (req, res) => {
     const { collectionId } = req.body; // optional
 
     // Check if post exists
-    const [posts] = await db.execute(`SELECT id FROM posts WHERE id = ?`, [postId]);
-    if (posts.length === 0) return res.status(404).json({ success: false, message: 'Post not found' });
+    const postDoc = await postsCol.doc(String(postId)).get();
+    if (!postDoc.exists) return res.status(404).json({ success: false, message: 'Post not found' });
 
-    // Check if already saved
-    const [existing] = await db.execute(`SELECT id FROM saved_posts WHERE user_id = ? AND post_id = ?`, [userId, postId]);
-    if (existing.length > 0) return res.status(400).json({ success: false, message: 'Post already saved' });
+    // Check if already saved (composite ID)
+    const saveId = `${userId}_${postId}`;
+    const existingDoc = await savedPostsCol.doc(saveId).get();
+    if (existingDoc.exists) return res.status(400).json({ success: false, message: 'Post already saved' });
 
-    await db.execute(`
-      INSERT INTO saved_posts (user_id, post_id, collection_id)
-      VALUES (?, ?, ?)
-    `, [userId, postId, collectionId || null]);
+    await savedPostsCol.doc(saveId).set({
+      user_id: userId,
+      post_id: String(postId),
+      collection_id: collectionId || null,
+      created_at: FieldValue.serverTimestamp()
+    });
 
     res.status(200).json({ success: true, message: 'Post saved' });
   } catch (error) {
@@ -33,7 +45,8 @@ exports.removeSavedPost = async (req, res) => {
     const userId = req.user.uid;
     const postId = req.params.postId;
 
-    await db.execute(`DELETE FROM saved_posts WHERE user_id = ? AND post_id = ?`, [userId, postId]);
+    const saveId = `${userId}_${postId}`;
+    await savedPostsCol.doc(saveId).delete();
 
     res.status(200).json({ success: true, message: 'Post removed from saved' });
   } catch (error) {
@@ -47,40 +60,71 @@ exports.getSavedPosts = async (req, res) => {
   try {
     const userId = req.user.uid;
 
-    const query = `
-      SELECT 
-        p.id,
-        p.content,
-        p.image_url,
-        (SELECT GROUP_CONCAT(pi.image_url SEPARATOR ',') FROM post_images pi WHERE pi.post_id = p.id) as images_concat,
-        p.created_at,
-        p.updated_at,
-        u.firebase_uid as user_id,
-        u.username,
-        u.full_name as displayName,
-        u.profile_picture as userAvatar,
-        (SELECT COUNT(*) FROM likes WHERE post_id = p.id) AS likesCount,
-        (SELECT COUNT(*) FROM comments WHERE post_id = p.id) AS commentsCount,
-        EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = ?) AS isLikedByCurrentUser,
-        sp.collection_id,
-        sp.created_at as saved_at
-      FROM saved_posts sp
-      JOIN posts p ON sp.post_id = p.id
-      JOIN users u ON p.user_id = u.firebase_uid
-      WHERE sp.user_id = ?
-      ORDER BY sp.created_at DESC
-    `;
+    const savedSnap = await savedPostsCol
+      .where('user_id', '==', userId)
+      .get();
 
-    const [rows] = await db.execute(query, [userId, userId]);
+    // Sort in memory to avoid needing a Firestore composite index
+    const sortedDocs = savedSnap.docs.sort((a, b) => {
+      const dateA = a.data().created_at?.toDate() || new Date(0);
+      const dateB = b.data().created_at?.toDate() || new Date(0);
+      return dateB - dateA; // desc
+    });
 
-    const formattedPosts = rows.map(r => ({
-      ...r,
-      images: r.images_concat ? r.images_concat.split(',') : (r.image_url ? [r.image_url] : []),
-      isLikedByCurrentUser: !!r.isLikedByCurrentUser,
-      images_concat: undefined
-    }));
+    const formattedPosts = await Promise.all(
+      sortedDocs.map(async (savedDoc) => {
+        const savedData = savedDoc.data();
+        const postDoc = await postsCol.doc(savedData.post_id).get();
+        if (!postDoc.exists) return null;
 
-    res.status(200).json({ success: true, posts: formattedPosts });
+        const post = postDoc.data();
+        const userDoc = await usersCol.doc(post.user_id).get();
+        const user = userDoc.exists ? userDoc.data() : {};
+
+        // Get likes count
+        const likesSnap = await likesCol.where('post_id', '==', savedData.post_id).count().get();
+        const likesCount = likesSnap.data().count;
+
+        // Get comments count
+        const commentsSnap = await commentsCol.where('post_id', '==', savedData.post_id).count().get();
+        const commentsCount = commentsSnap.data().count;
+
+        // Check if current user liked
+        const likeDoc = await likesCol.doc(`${savedData.post_id}_${userId}`).get();
+        const isLikedByCurrentUser = likeDoc.exists;
+
+        // Get post images
+        const imagesSnap = await postImagesCol.where('post_id', '==', savedData.post_id).get();
+        const additionalImages = imagesSnap.docs.map(d => d.data().image_url);
+
+        const images = additionalImages.length > 0
+          ? additionalImages
+          : (post.image_url ? [post.image_url] : []);
+
+        return {
+          id: postDoc.id,
+          content: post.content || '',
+          image_url: post.image_url || null,
+          images,
+          created_at: post.created_at ? post.created_at.toDate() : new Date(),
+          updated_at: post.updated_at ? post.updated_at.toDate() : new Date(),
+          user_id: post.user_id,
+          username: user.username || '',
+          displayName: user.full_name || '',
+          userAvatar: user.profile_picture || '',
+          likesCount,
+          commentsCount,
+          isLikedByCurrentUser,
+          collection_id: savedData.collection_id || null,
+          saved_at: savedData.created_at ? savedData.created_at.toDate() : new Date()
+        };
+      })
+    );
+
+    // Filter out nulls (deleted posts)
+    const validPosts = formattedPosts.filter(p => p !== null);
+
+    res.status(200).json({ success: true, posts: validPosts });
   } catch (error) {
     console.error('getSavedPosts error:', error);
     res.status(500).json({ success: false, message: 'Server error', detail: error.message });
@@ -91,8 +135,8 @@ exports.getSavedPosts = async (req, res) => {
 exports.getSavedPostIds = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const [rows] = await db.execute(`SELECT post_id FROM saved_posts WHERE user_id = ?`, [userId]);
-    const ids = rows.map(r => r.post_id);
+    const snapshot = await savedPostsCol.where('user_id', '==', userId).get();
+    const ids = snapshot.docs.map(d => d.data().post_id);
     res.status(200).json({ success: true, savedIds: ids });
   } catch (error) {
     console.error('getSavedPostIds error', error);
@@ -104,9 +148,25 @@ exports.getSavedPostIds = async (req, res) => {
 exports.getCollections = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const [rows] = await db.execute(`SELECT * FROM saved_collections WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
-    res.status(200).json({ success: true, collections: rows });
+    const snapshot = await savedCollectionsCol
+      .where('user_id', '==', userId)
+      .get();
+
+    // Sort in memory to avoid needing a Firestore composite index
+    const sortedDocs = snapshot.docs.sort((a, b) => {
+      const dateA = a.data().created_at?.toDate() || new Date(0);
+      const dateB = b.data().created_at?.toDate() || new Date(0);
+      return dateB - dateA;
+    });
+
+    const collections = sortedDocs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      created_at: doc.data().created_at ? doc.data().created_at.toDate() : new Date()
+    }));
+    res.status(200).json({ success: true, collections });
   } catch (error) {
+    console.error('getCollections error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -117,11 +177,15 @@ exports.createCollection = async (req, res) => {
     const { name } = req.body;
     if (!name || name.trim() === '') return res.status(400).json({ success: false, message: 'Name is required' });
 
-    const [result] = await db.execute(`INSERT INTO saved_collections (user_id, name) VALUES (?, ?)`, [userId, name]);
-    res.status(200).json({ success: true, collection: { id: result.insertId, name, user_id: userId } });
+    const colRef = await savedCollectionsCol.add({
+      user_id: userId,
+      name: name.trim(),
+      created_at: FieldValue.serverTimestamp()
+    });
+    res.status(200).json({ success: true, collection: { id: colRef.id, name: name.trim(), user_id: userId } });
   } catch (error) {
     console.error('Failed to create collection:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
@@ -129,8 +193,14 @@ exports.deleteCollection = async (req, res) => {
   try {
     const userId = req.user.uid;
     const { id } = req.params;
-    await db.execute(`DELETE FROM saved_collections WHERE id = ? AND user_id = ?`, [id, userId]);
-    // Posts belonging to this collection will have collection_id SET NULL mapped.
+
+    const colRef = savedCollectionsCol.doc(id);
+    const colDoc = await colRef.get();
+
+    if (colDoc.exists && colDoc.data().user_id === userId) {
+      await colRef.delete();
+    }
+
     res.status(200).json({ success: true, message: 'Deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' });
@@ -144,13 +214,16 @@ exports.renameCollection = async (req, res) => {
     const { name } = req.body;
     if (!name || name.trim() === '') return res.status(400).json({ success: false, message: 'Name is required' });
 
-    const [result] = await db.execute(
-      `UPDATE saved_collections SET name = ? WHERE id = ? AND user_id = ?`,
-      [name.trim(), id, userId]
-    );
-    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Collection not found' });
+    const colRef = savedCollectionsCol.doc(id);
+    const colDoc = await colRef.get();
 
-    res.status(200).json({ success: true, collection: { id: Number(id), name: name.trim() } });
+    if (!colDoc.exists || colDoc.data().user_id !== userId) {
+      return res.status(404).json({ success: false, message: 'Collection not found' });
+    }
+
+    await colRef.update({ name: name.trim() });
+
+    res.status(200).json({ success: true, collection: { id, name: name.trim() } });
   } catch (error) {
     console.error('renameCollection error:', error);
     res.status(500).json({ success: false, message: 'Server error' });

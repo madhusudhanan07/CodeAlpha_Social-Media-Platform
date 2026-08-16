@@ -1,55 +1,76 @@
-const db = require('../config/db');
+const { db } = require('../config/firebase');
+const { FieldValue } = require('firebase-admin/firestore');
 const NotificationsModel = require('./notificationsModel');
+
+const followsCol = db.collection('follows');
+const usersCol = db.collection('users');
 
 class FollowsModel {
   static async toggleFollow(followerId, followingId) {
     if (followerId === followingId) throw new Error("Cannot follow yourself");
 
-    const checkQuery = `SELECT id FROM follows WHERE follower_id = ? AND following_id = ?`;
-    const [existing] = await db.execute(checkQuery, [followerId, followingId]);
+    const followId = `${followerId}_${followingId}`;
+    const followRef = followsCol.doc(followId);
+    const followDoc = await followRef.get();
 
-    if (existing.length > 0) {
-      await db.execute(`DELETE FROM follows WHERE follower_id = ? AND following_id = ?`, [followerId, followingId]);
+    if (followDoc.exists) {
+      // Unfollow
+      await followRef.delete();
       return { followed: false };
     } else {
-      await db.execute(`INSERT INTO follows (follower_id, following_id) VALUES (?, ?)`, [followerId, followingId]);
+      // Follow
+      await followRef.set({
+        follower_id: followerId,
+        following_id: followingId,
+        created_at: FieldValue.serverTimestamp()
+      });
       await NotificationsModel.createNotification(followingId, followerId, 'follow');
       return { followed: true };
     }
   }
 
   static async getSuggestions(userId) {
-    // Return users not currently followed by userId (exclude self)
-    const query = `
-      SELECT 
-        u.firebase_uid as id, 
-        u.username, 
-        u.full_name as displayName, 
-        u.profile_picture as avatar 
-      FROM users u
-      WHERE u.firebase_uid != ? 
-      AND u.firebase_uid NOT IN (
-        SELECT following_id FROM follows WHERE follower_id = ?
-      )
-      ORDER BY RAND()
-      LIMIT 5
-    `;
-    const [rows] = await db.execute(query, [userId, userId]);
-    return rows;
+    // Get IDs of users currently followed
+    const followingSnap = await followsCol.where('follower_id', '==', userId).get();
+    const followingIds = new Set(followingSnap.docs.map(d => d.data().following_id));
+    followingIds.add(userId); // Exclude self
+
+    // Fetch all users and filter out followed + self, then pick random 5
+    const usersSnap = await usersCol.limit(50).get();
+    
+    const candidates = usersSnap.docs
+      .filter(doc => !followingIds.has(doc.id))
+      .map(doc => {
+        const u = doc.data();
+        return {
+          id: doc.id,
+          username: u.username || '',
+          displayName: u.full_name || '',
+          avatar: u.profile_picture || ''
+        };
+      });
+
+    // Shuffle and take 5
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+
+    return candidates.slice(0, 5);
   }
 
   static async getFollowStats(userId) {
-    const [followers] = await db.execute(`SELECT COUNT(*) as count FROM follows WHERE following_id = ?`, [userId]);
-    const [following] = await db.execute(`SELECT COUNT(*) as count FROM follows WHERE follower_id = ?`, [userId]);
+    const followersSnap = await followsCol.where('following_id', '==', userId).count().get();
+    const followingSnap = await followsCol.where('follower_id', '==', userId).count().get();
     return {
-      followers: followers[0].count,
-      following: following[0].count
+      followers: followersSnap.data().count,
+      following: followingSnap.data().count
     };
   }
 
   static async isFollowing(followerId, followingId) {
-    const [rows] = await db.execute(`SELECT id FROM follows WHERE follower_id = ? AND following_id = ?`, [followerId, followingId]);
-    return rows.length > 0;
+    const followDoc = await followsCol.doc(`${followerId}_${followingId}`).get();
+    return followDoc.exists;
   }
 }
 

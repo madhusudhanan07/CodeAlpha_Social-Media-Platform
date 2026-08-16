@@ -1,5 +1,9 @@
-const db = require('../config/db');
+const { db } = require('../config/firebase');
+const { FieldValue } = require('firebase-admin/firestore');
 const { getIo, getConnectedUsers } = require('../config/socket');
+
+const notificationsCol = db.collection('notifications');
+const usersCol = db.collection('users');
 
 // Helper function to create notification and emit socket event
 exports.createNotification = async (userId, senderId, type, referenceId, message) => {
@@ -7,27 +11,42 @@ exports.createNotification = async (userId, senderId, type, referenceId, message
     if (userId === senderId) return; // don't notify self
 
     // Check for exact duplicate notification to prevent spam
-    const [existing] = await db.execute(`
-      SELECT id FROM notifications 
-      WHERE user_id = ? AND sender_id = ? AND type = ? AND reference_id = ?
-    `, [userId, senderId, type, referenceId || null]);
-    
-    if (existing.length > 0) return;
+    let query = notificationsCol
+      .where('user_id', '==', userId)
+      .where('sender_id', '==', senderId)
+      .where('type', '==', type);
 
-    const [result] = await db.execute(`
-      INSERT INTO notifications (user_id, sender_id, type, reference_id, message)
-      VALUES (?, ?, ?, ?, ?)
-    `, [userId, senderId, type, referenceId || null, message]);
+    if (referenceId) {
+      query = query.where('reference_id', '==', String(referenceId));
+    }
+
+    const existingSnap = await query.limit(1).get();
+    if (!existingSnap.empty) return;
+
+    const notifData = {
+      user_id: userId,
+      sender_id: senderId,
+      type,
+      reference_id: referenceId ? String(referenceId) : null,
+      message: message || null,
+      is_read: false,
+      created_at: FieldValue.serverTimestamp()
+    };
+
+    const notifRef = await notificationsCol.add(notifData);
 
     // Construct the notification object for socket io
-    const [inserted] = await db.execute(`
-      SELECT n.*, u.username as sender_username, u.full_name as sender_name, u.profile_picture as sender_avatar
-      FROM notifications n
-      JOIN users u ON n.sender_id = u.firebase_uid
-      WHERE n.id = ?
-    `, [result.insertId]);
+    const senderDoc = await usersCol.doc(senderId).get();
+    const sender = senderDoc.exists ? senderDoc.data() : {};
 
-    const notification = inserted[0];
+    const notification = {
+      id: notifRef.id,
+      ...notifData,
+      created_at: new Date(),
+      sender_username: sender.username || '',
+      sender_name: sender.full_name || '',
+      sender_avatar: sender.profile_picture || ''
+    };
 
     // Emit Socket
     const connectedUsers = getConnectedUsers && getConnectedUsers() ? getConnectedUsers() : {};
@@ -47,33 +66,56 @@ exports.getNotifications = async (req, res) => {
   try {
     const userId = req.user.uid;
     const { filter } = req.query; // all, unread, likes, comments, friends, messages
-    
-    let query = `
-      SELECT n.id, n.user_id, n.sender_id, n.type, n.reference_id, n.message, n.is_read, n.created_at,
-             u.username as sender_username, u.full_name as sender_name, u.profile_picture as sender_avatar
-      FROM notifications n
-      JOIN users u ON n.sender_id = u.firebase_uid
-      WHERE n.user_id = ?
-    `;
-    const params = [userId];
+
+    let query = notificationsCol.where('user_id', '==', userId);
 
     if (filter) {
       if (filter === 'unread') {
-        query += ` AND n.is_read = FALSE`;
+        query = query.where('is_read', '==', false);
       } else if (filter === 'likes') {
-        query += ` AND n.type = 'LIKE'`;
+        query = query.where('type', '==', 'LIKE');
       } else if (filter === 'comments') {
-        query += ` AND n.type = 'COMMENT'`;
+        query = query.where('type', '==', 'COMMENT');
       } else if (filter === 'friends') {
-        query += ` AND n.type IN ('FRIEND_REQUEST', 'FRIEND_ACCEPTED', 'FOLLOW')`;
+        query = query.where('type', 'in', ['FRIEND_REQUEST', 'FRIEND_ACCEPTED', 'FOLLOW']);
       } else if (filter === 'messages') {
-        query += ` AND n.type = 'MESSAGE'`;
+        query = query.where('type', '==', 'MESSAGE');
       }
     }
 
-    query += ` ORDER BY n.created_at DESC LIMIT 50`;
+    // query = query.orderBy('created_at', 'desc').limit(50); // Removed to avoid composite index
 
-    const [notifications] = await db.execute(query, params);
+    const snapshot = await query.get();
+
+    // Sort in memory and then apply limit
+    const sortedDocs = snapshot.docs.sort((a, b) => {
+      const dateA = a.data().created_at?.toDate() || new Date(0);
+      const dateB = b.data().created_at?.toDate() || new Date(0);
+      return dateB - dateA;
+    }).slice(0, 50);
+
+    const notifications = await Promise.all(
+      sortedDocs.map(async (doc) => {
+        const data = doc.data();
+        const senderDoc = await usersCol.doc(data.sender_id).get();
+        const sender = senderDoc.exists ? senderDoc.data() : {};
+
+        return {
+          id: doc.id,
+          user_id: data.user_id,
+          sender_id: data.sender_id,
+          type: data.type,
+          reference_id: data.reference_id || null,
+          message: data.message || null,
+          is_read: data.is_read || false,
+          created_at: data.created_at ? data.created_at.toDate() : new Date(),
+          sender_username: sender.username || '',
+          sender_name: sender.full_name || '',
+          sender_avatar: sender.profile_picture || ''
+        };
+      })
+    );
+
     res.status(200).json({ success: true, notifications });
   } catch (error) {
     console.error('getNotifications error:', error);
@@ -84,10 +126,12 @@ exports.getNotifications = async (req, res) => {
 exports.getUnreadCount = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const [rows] = await db.execute(`
-      SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE
-    `, [userId]);
-    res.status(200).json({ success: true, unreadCount: rows[0].count });
+    const snapshot = await notificationsCol
+      .where('user_id', '==', userId)
+      .where('is_read', '==', false)
+      .count()
+      .get();
+    res.status(200).json({ success: true, unreadCount: snapshot.data().count });
   } catch (error) {
     console.error('getUnreadCount error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -98,9 +142,14 @@ exports.markRead = async (req, res) => {
   try {
     const userId = req.user.uid;
     const notificationId = req.params.id;
-    await db.execute(`
-      UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?
-    `, [notificationId, userId]);
+    
+    const notifRef = notificationsCol.doc(notificationId);
+    const notifDoc = await notifRef.get();
+    
+    if (notifDoc.exists && notifDoc.data().user_id === userId) {
+      await notifRef.update({ is_read: true });
+    }
+    
     res.status(200).json({ success: true, message: 'Marked as read' });
   } catch (error) {
     console.error('markRead error:', error);
@@ -111,9 +160,19 @@ exports.markRead = async (req, res) => {
 exports.markAllRead = async (req, res) => {
   try {
     const userId = req.user.uid;
-    await db.execute(`
-      UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE
-    `, [userId]);
+    const snapshot = await notificationsCol
+      .where('user_id', '==', userId)
+      .where('is_read', '==', false)
+      .get();
+
+    if (!snapshot.empty) {
+      const batch = db.batch();
+      snapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { is_read: true });
+      });
+      await batch.commit();
+    }
+
     res.status(200).json({ success: true, message: 'All marked as read' });
   } catch (error) {
     console.error('markAllRead error:', error);
@@ -125,9 +184,14 @@ exports.deleteNotification = async (req, res) => {
   try {
     const userId = req.user.uid;
     const notificationId = req.params.id;
-    await db.execute(`
-      DELETE FROM notifications WHERE id = ? AND user_id = ?
-    `, [notificationId, userId]);
+    
+    const notifRef = notificationsCol.doc(notificationId);
+    const notifDoc = await notifRef.get();
+    
+    if (notifDoc.exists && notifDoc.data().user_id === userId) {
+      await notifRef.delete();
+    }
+    
     res.status(200).json({ success: true, message: 'Deleted' });
   } catch (error) {
     console.error('deleteNotification error:', error);
