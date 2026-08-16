@@ -156,7 +156,10 @@ export default function Navbar() {
   return (
     <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--nav-bg)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-        <Link to="/" style={{ textDecoration: 'none', color: '#0a66c2', fontWeight: 700, fontSize: '1.25rem' }}>Social Media Platform</Link>
+        <Link to="/" style={{ textDecoration: 'none', color: '#0a66c2', fontWeight: 700, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src="/logo.png" alt="SMP Logo" style={{ height: '36px', width: '36px', objectFit: 'cover', borderRadius: '50%' }} />
+          Social Media Platform
+        </Link>
 
         {user && (
           <div style={{ position: 'relative' }}>
